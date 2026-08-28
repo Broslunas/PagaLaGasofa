@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useState } from "react";
-import { Layers, Sun, Mountain, Satellite } from "lucide-react";
+import { Layers, Sun, Mountain, Satellite, Maximize2, Minimize2, MapPin, Plus } from "lucide-react";
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { GeoPoint } from "@/components/calculator/location-field";
 import type { MapStop } from "@/lib/stops";
@@ -73,16 +73,18 @@ function pinIcon(color: string, label: string) {
 function MapController({
   points,
   routePolyline,
+  isFullscreen,
 }: {
   points: GeoPoint[];
   routePolyline: [number, number][];
+  isFullscreen: boolean;
 }) {
   const map = useMap();
 
   useEffect(() => {
-    const id = setTimeout(() => map.invalidateSize(), 0);
+    const id = setTimeout(() => map.invalidateSize(), 100);
     return () => clearTimeout(id);
-  }, [map]);
+  }, [map, isFullscreen]);
 
   useEffect(() => {
     if (routePolyline.length > 0) {
@@ -122,63 +124,185 @@ export function LocationMap({
   stops,
   routePolyline = [],
   activeStopIndex = -1,
+  onSelectStopIndex,
+  onAddWaypoint,
   onPick,
 }: {
   stops: MapStop[];
   routePolyline?: [number, number][];
   /** Índice del stop que recibe el próximo clic en el mapa. -1 = mapa de solo lectura. */
   activeStopIndex?: number;
+  onSelectStopIndex?: (index: number) => void;
+  onAddWaypoint?: () => void;
   onPick?: (index: number, point: GeoPoint) => void;
 }) {
   const [currentStyle, setCurrentStyle] = useState<MapStyleKey>("streets");
   const [openSelector, setOpenSelector] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const styleConfig = MAP_STYLES[currentStyle];
   const points = stops.map((s) => s.point).filter((p): p is GeoPoint => p !== null);
   const interactive = !!onPick && activeStopIndex >= 0;
 
+  const getStopTitle = (index: number) => {
+    if (index === 0) return "Origen";
+    if (index === stops.length - 1) return "Destino";
+    return `Parada ${index}`;
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
   return (
-    <div className="relative h-full w-full">
-      {/* Selector de capas / estilos de mapa */}
-      <div className="absolute right-3 top-3 z-[1000] flex flex-col items-end">
+    <div
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[9999] h-screen w-screen bg-background"
+          : "relative h-full w-full"
+      }
+    >
+      {/* Controles superiores derechos: Selector de capas y Pantalla completa */}
+      <div className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5">
+        <div className="relative flex flex-col items-end">
+          <button
+            type="button"
+            onClick={() => setOpenSelector((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
+            title="Cambiar tipo de mapa"
+          >
+            <Layers size={14} className="text-primary" />
+            <span>{styleConfig.name}</span>
+          </button>
+
+          {openSelector && (
+            <div className="absolute right-0 top-9 mt-1 flex min-w-[120px] flex-col gap-1 rounded-lg border border-border/70 bg-card/95 p-1 shadow-lg backdrop-blur-md">
+              {(Object.keys(MAP_STYLES) as MapStyleKey[]).map((key) => {
+                const item = MAP_STYLES[key];
+                const Icon = item.icon;
+                const active = key === currentStyle;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setCurrentStyle(key);
+                      setOpenSelector(false);
+                    }}
+                    className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition ${
+                      active
+                        ? "bg-primary font-medium text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{item.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
-          onClick={() => setOpenSelector((prev) => !prev)}
-          className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
-          title="Cambiar tipo de mapa"
+          onClick={() => setIsFullscreen((prev) => !prev)}
+          className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
+          title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
         >
-          <Layers size={14} className="text-primary" />
-          <span>{styleConfig.name}</span>
+          {isFullscreen ? (
+            <>
+              <Minimize2 size={14} className="text-primary" />
+              <span className="hidden sm:inline">Cerrar</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 size={14} className="text-primary" />
+              <span className="hidden sm:inline">Pantalla completa</span>
+            </>
+          )}
         </button>
+      </div>
 
-        {openSelector && (
-          <div className="mt-1 flex flex-col gap-1 rounded-lg border border-border/70 bg-card/95 p-1 shadow-lg backdrop-blur-md">
-            {(Object.keys(MAP_STYLES) as MapStyleKey[]).map((key) => {
-              const item = MAP_STYLES[key];
-              const Icon = item.icon;
-              const active = key === currentStyle;
+      {/* Leyenda inferior izquierda (solo en fullscreen) */}
+      {isFullscreen && (
+        <div className="absolute bottom-3 left-3 z-[1000] max-h-[45vh] max-w-[280px] overflow-y-auto rounded-xl border border-border/70 bg-card/90 p-2.5 shadow-lg backdrop-blur-md sm:max-w-xs">
+          <div className="mb-2 flex items-center justify-between gap-1 border-b border-border/50 pb-1.5">
+            <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <MapPin size={12} className="text-primary" />
+              <span>Leyenda</span>
+            </div>
+            {onAddWaypoint && (
+              <button
+                type="button"
+                onClick={onAddWaypoint}
+                className="flex items-center gap-1 rounded-md border border-border/70 bg-background/80 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+                title="Añadir parada intermedia"
+              >
+                <Plus size={11} className="text-primary" />
+                <span>Añadir parada</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {stops.map((stop, i) => {
+              const isTarget = interactive && activeStopIndex === i;
+              const title = getStopTitle(i);
+              const canSelect = interactive && !!onSelectStopIndex;
+
               return (
                 <button
-                  key={key}
+                  key={i}
                   type="button"
-                  onClick={() => {
-                    setCurrentStyle(key);
-                    setOpenSelector(false);
-                  }}
-                  className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition ${
-                    active
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  disabled={!canSelect}
+                  onClick={() => onSelectStopIndex?.(i)}
+                  className={`flex w-full items-center gap-2 rounded-md p-1.5 text-left text-xs transition ${
+                    isTarget
+                      ? "border border-primary/40 bg-primary/10 font-medium text-primary shadow-sm"
+                      : canSelect
+                        ? "text-foreground hover:bg-muted/60"
+                        : "text-foreground"
                   }`}
+                  title={canSelect ? `Seleccionar para fijar ${title}` : undefined}
                 >
-                  <Icon size={14} />
-                  <span>{item.name}</span>
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm"
+                    style={{ backgroundColor: stop.color }}
+                  >
+                    {stop.label}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="truncate text-xs font-semibold">{title}</span>
+                      {isTarget && (
+                        <span className="rounded bg-primary/20 px-1 py-0.2 text-[9px] font-bold uppercase text-primary">
+                          Fijando
+                        </span>
+                      )}
+                    </div>
+                    <span className="truncate text-[10px] text-muted-foreground">
+                      {stop.point ? stop.point.label : "Sin seleccionar (click para fijar)"}
+                    </span>
+                  </div>
                 </button>
               );
             })}
           </div>
-        )}
-      </div>
+
+          {interactive && (
+            <p className="mt-2 border-t border-border/50 pt-1.5 text-[10px] text-muted-foreground">
+              Haz clic en un punto de la leyenda para cambiarlo o toca el mapa para fijar <strong>{getStopTitle(activeStopIndex)}</strong>.
+            </p>
+          )}
+        </div>
+      )}
 
       <MapContainer
         center={TENERIFE_CENTER}
@@ -225,7 +349,7 @@ export function LocationMap({
           </>
         )}
 
-        <MapController points={points} routePolyline={routePolyline} />
+        <MapController points={points} routePolyline={routePolyline} isFullscreen={isFullscreen} />
         {interactive && <ClickHandler onPick={(point) => onPick!(activeStopIndex, point)} />}
       </MapContainer>
     </div>

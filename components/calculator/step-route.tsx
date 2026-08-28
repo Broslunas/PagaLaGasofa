@@ -174,6 +174,8 @@ export function StepRoute({
           stops={buildStops(origin, waypoints, destination)}
           routePolyline={routePolyline}
           activeStopIndex={activeStopIndex}
+          onSelectStopIndex={setActiveStopIndex}
+          onAddWaypoint={addWaypoint}
           onPick={handlePick}
         />
       </div>
