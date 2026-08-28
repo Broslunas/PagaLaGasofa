@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SlidersHorizontal, Trash2 } from "lucide-react";
+import { SlidersHorizontal, Trash2, Search } from "lucide-react";
 
 interface Passenger {
   name: string;
@@ -34,6 +34,17 @@ export function TripList({ trips: initialTrips }: { trips: Trip[] }) {
   const [trips, setTrips] = useState(initialTrips);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const filteredTrips = q
+    ? trips.filter(
+        (t) =>
+          (t.title ?? "").toLowerCase().includes(q) ||
+          t.origin.toLowerCase().includes(q) ||
+          t.destination.toLowerCase().includes(q)
+      )
+    : trips;
 
   function toggleExpanded(tripId: string) {
     setExpanded((s) => {
@@ -154,7 +165,22 @@ export function TripList({ trips: initialTrips }: { trips: Trip[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {trips.map((trip) => (
+      {trips.length > 3 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Buscar por título, origen o destino..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Buscar viajes"
+          />
+        </div>
+      )}
+      {filteredTrips.length === 0 && (
+        <p className="text-sm text-muted-foreground">Ningún viaje coincide con &quot;{query}&quot;.</p>
+      )}
+      {filteredTrips.map((trip) => (
         <div key={trip.id} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
           <div className="mb-1 flex items-center gap-2">
             <Input

@@ -5,6 +5,7 @@ import { CopyLinkButton } from "@/components/ticket/copy-link-button";
 import { DownloadImageButton } from "@/components/ticket/download-image-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
 import { PassengerPaidToggle } from "@/components/ticket/passenger-paid-toggle";
+import { WhatsAppShareButton } from "@/components/ticket/whatsapp-share-button";
 import { shortenAddress } from "@/lib/format-address";
 import { ArrowRight, Fuel, Receipt, Route, Users } from "lucide-react";
 
@@ -51,6 +52,10 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <CopyLinkButton shareId={shareId} />
+            <WhatsAppShareButton
+              shareId={shareId}
+              message={`Ticket del viaje ${trip.origin} → ${trip.destination}:`}
+            />
             <DownloadImageButton shareId={shareId} />
           </div>
         </div>
@@ -130,9 +135,14 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                             </span>
                           )}
                       </span>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">{p.amount.toFixed(2)} €</span>
                         <PassengerPaidToggle shareId={shareId} index={i} initialHasPaid={p.hasPaid} />
+                        <WhatsAppShareButton
+                          shareId={shareId}
+                          message={`${p.name}, debes ${p.amount.toFixed(2)} € del viaje ${trip.origin} → ${trip.destination}:`}
+                          compact
+                        />
                       </div>
                     </div>
                   ))}
