@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Header } from "@/components/layout/header";
@@ -8,8 +8,13 @@ import { RegisterSW } from "@/components/layout/register-sw";
 import { InstallPrompt } from "@/components/layout/install-prompt";
 import "./globals.css";
 
-const geistSans = Geist({
+const bodyFont = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const headingFont = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -56,7 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${headingFont.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex h-dvh flex-col">
         <ThemeProvider>
