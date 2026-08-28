@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import type { GasStationDetail } from "@/app/api/gasolineras/[id]/route";
 import { PriceHistoryChart, type HistoryPoint } from "@/components/gasolineras/price-history-chart";
 import { StationScheduleCard } from "@/components/gasolineras/station-schedule-card";
+import { FavoriteButton } from "@/components/gasolineras/favorite-button";
 
 // Leaflet dynamic import without SSR
 const StationMap = dynamic(
@@ -181,9 +182,27 @@ export default function GasolineraDetailPage({
                   MITECO Verificado
                 </span>
               </div>
-              <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
-                {station.name}
-              </h1>
+              <div className="mt-2 flex items-center gap-3">
+                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                  {station.name}
+                </h1>
+                <FavoriteButton
+                  station={{
+                    id: station.id,
+                    name: station.name,
+                    brand: station.brand,
+                    address: station.address,
+                    municipality: station.municipality,
+                    province: station.province,
+                    provinceId: provincia,
+                    lat: station.lat,
+                    lng: station.lng,
+                  }}
+                  showLabel
+                  size="sm"
+                  className="border border-border/60 bg-card/60 shadow-xs"
+                />
+              </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 {station.address}, {station.postalCode} {station.municipality} ({station.province})
               </p>

@@ -50,10 +50,11 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts Account[]
-  sessions Session[]
-  vehicles Vehicle[]
-  trips    Trip[]
+  accounts  Account[]
+  sessions  Session[]
+  vehicles  Vehicle[]
+  trips     Trip[]
+  favorites FavoriteStation[]
 }
 
 model VerificationToken {
@@ -136,4 +137,23 @@ model Trip {
   passengers Passenger[]
 
   createdAt DateTime @default(now())
+}
+
+model FavoriteStation {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  stationId    String
+  name         String
+  brand        String
+  address      String
+  municipality String
+  province     String
+  provinceId   String?
+  lat          Float?
+  lng          Float?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stationId])
 }
