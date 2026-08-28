@@ -69,12 +69,12 @@ export function StepVehicle({
           <Label htmlFor="myVehicle">Mi vehículo</Label>
           <select
             id="myVehicle"
-            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+            className="h-8 w-full min-w-0 cursor-pointer rounded-lg border border-input bg-card px-2.5 py-1 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-card"
             value={selectedVehicleId}
             onChange={(e) => selectVehicle(e.target.value)}
           >
             {myVehicles.map((v) => (
-              <option key={v.id} value={v.id}>
+              <option key={v.id} value={v.id} className="bg-card text-foreground">
                 {v.brand} {v.model} ({v.year})
               </option>
             ))}

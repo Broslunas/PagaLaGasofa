@@ -7,7 +7,7 @@ import { Plus, X } from "lucide-react";
 import type { Passenger } from "@/components/calculator/calculator";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-8 cursor-pointer rounded-lg border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-card";
 
 export function StepPassengers({
   passengers,

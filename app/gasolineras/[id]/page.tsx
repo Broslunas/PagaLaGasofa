@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GasStationDetail } from "@/app/api/gasolineras/[id]/route";
+import { PriceHistoryChart, type HistoryPoint } from "@/components/gasolineras/price-history-chart";
 
 // Leaflet dynamic import without SSR
 const StationMap = dynamic(
@@ -62,6 +63,9 @@ export default function GasolineraDetailPage({
   const [updatedAt, setUpdatedAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [historyDays, setHistoryDays] = useState<number>(30);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
   useEffect(() => {
     let ignore = false;
@@ -90,6 +94,35 @@ export default function GasolineraDetailPage({
       ignore = true;
     };
   }, [id, provincia]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadHistory() {
+      setLoadingHistory(true);
+      try {
+        const queryParams = new URLSearchParams();
+        if (provincia) queryParams.set("provincia", provincia);
+        queryParams.set("dias", String(historyDays));
+
+        const res = await fetch(`/api/gasolineras/${id}/historico?${queryParams.toString()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!ignore && json.history) {
+            setHistory(json.history);
+          }
+        }
+      } catch {
+        // Fallback silently if history unavailable
+      } finally {
+        if (!ignore) setLoadingHistory(false);
+      }
+    }
+
+    loadHistory();
+    return () => {
+      ignore = true;
+    };
+  }, [id, provincia, historyDays]);
 
   if (loading) {
     return (
@@ -274,6 +307,16 @@ export default function GasolineraDetailPage({
                 </div>
               </dl>
             </div>
+
+            {/* Historical Price Chart */}
+            <PriceHistoryChart
+              history={history}
+              availableFuels={availablePrices.map(([k]) => k)}
+              fuelLabels={FUEL_LABELS}
+              days={historyDays}
+              onDaysChange={(d) => setHistoryDays(d)}
+              loading={loadingHistory}
+            />
           </div>
 
           {/* Right Column: Interactive Map (5 cols) */}

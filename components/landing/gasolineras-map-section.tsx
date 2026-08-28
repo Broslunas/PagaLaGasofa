@@ -182,10 +182,10 @@ export function GasolinerasMapSection() {
                   setLocationDetected(false);
                 }}
                 aria-label="Seleccionar provincia"
-                className="h-9 appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-input/20"
+                className="h-9 cursor-pointer appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-card"
               >
                 {PROVINCES.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option key={p.id} value={p.id} className="bg-card text-foreground">
                     {p.name}
                   </option>
                 ))}
@@ -199,10 +199,10 @@ export function GasolinerasMapSection() {
                 value={selectedFuel}
                 onChange={(e) => setSelectedFuel(e.target.value)}
                 aria-label="Seleccionar carburante"
-                className="h-9 appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-input/20"
+                className="h-9 cursor-pointer appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-card"
               >
                 {FUEL_TYPES.map((f) => (
-                  <option key={f.id} value={f.id}>
+                  <option key={f.id} value={f.id} className="bg-card text-foreground">
                     {f.label}
                   </option>
                 ))}

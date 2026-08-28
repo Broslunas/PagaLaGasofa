@@ -2,9 +2,9 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState, useMemo } from "react";
-import { Layers } from "lucide-react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Layers, Maximize2, Minimize2, Sparkles } from "lucide-react";
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import Link from "next/link";
 import { MAP_STYLES, MapStyleKey } from "@/components/calculator/location-map";
 
@@ -20,44 +20,113 @@ export interface MapStationItem {
   isCheapest?: boolean;
 }
 
-function createPriceMarker(price: number | null, isCheapest: boolean) {
+function createPriceMarker(price: number | null, isCheapest: boolean, isMini: boolean) {
   const priceText = price ? `${price.toFixed(3)}€` : "N/D";
-  const bgClass = isCheapest
-    ? "background: #059669; color: #ffffff; border-color: #34d399;"
-    : "background: #18181b; color: #f4f4f5; border-color: #f97316;";
+  const bg = isCheapest ? "#059669" : "#18181b";
+  const border = isCheapest ? "#34d399" : "#f97316";
+  const text = isCheapest ? "#ffffff" : "#f4f4f5";
+
+  if (isMini) {
+    const miniHtml = `
+      <div style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 10px;
+        border-radius: 9999px;
+        background: ${border};
+        border: 2px solid #09090b;
+        box-shadow: 0 0 6px rgba(0,0,0,0.6);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      "></div>
+    `;
+    return L.divIcon({
+      html: miniHtml,
+      className: "custom-gas-marker mini-marker",
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    });
+  }
+
+  const svgFuel = `
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;">
+      <path d="M3 22h12"/>
+      <path d="M4 9h10"/>
+      <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/>
+      <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>
+    </svg>
+  `;
 
   const html = `
     <div style="
-      display: flex;
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 3px 6px;
+      gap: 3.5px;
+      padding: 2.5px 7px;
       border-radius: 9999px;
-      font-family: system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 11px;
       font-weight: 700;
-      border: 1.5px solid;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+      line-height: 1;
+      background: ${bg};
+      color: ${text};
+      border: 1.5px solid ${border};
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
       white-space: nowrap;
       cursor: pointer;
-      transform: translate(-50%, -50%);
-      ${bgClass}
+      user-select: none;
+      pointer-events: auto;
     ">
-      <span>⛽</span>
-      <span>${priceText}</span>
+      ${svgFuel}
+      <span style="letter-spacing: -0.01em;">${priceText}</span>
     </div>
   `;
 
   return L.divIcon({
     html,
-    className: "gas-price-marker",
+    className: "custom-gas-marker",
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   });
 }
 
-function MapBoundsController({ stations }: { stations: MapStationItem[] }) {
+function MapViewController({
+  stations,
+  isFullscreen,
+  onZoomChange,
+}: {
+  stations: MapStationItem[];
+  isFullscreen: boolean;
+  onZoomChange: (zoom: number) => void;
+}) {
   const map = useMap();
+
+  useMapEvents({
+    zoomend: () => {
+      onZoomChange(map.getZoom());
+    },
+    zoom: () => {
+      onZoomChange(map.getZoom());
+    },
+  });
+
+  useEffect(() => {
+    onZoomChange(map.getZoom());
+  }, [map, onZoomChange]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timeout);
+  }, [map, isFullscreen]);
 
   useEffect(() => {
     map.invalidateSize();
@@ -66,12 +135,15 @@ function MapBoundsController({ stations }: { stations: MapStationItem[] }) {
 
     if (valid.length === 1) {
       map.flyTo([valid[0].lat, valid[0].lng], 13);
+      onZoomChange(13);
       return;
     }
 
     const bounds = L.latLngBounds(valid.map((s) => [s.lat, s.lng]));
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-  }, [map, stations]);
+    const fitZoom = map.getBoundsZoom(bounds);
+    onZoomChange(fitZoom);
+  }, [map, stations, onZoomChange]);
 
   return null;
 }
@@ -87,6 +159,10 @@ export default function GasStationsOverviewMap({
 }) {
   const [currentStyle, setCurrentStyle] = useState<MapStyleKey>("streets");
   const [openSelector, setOpenSelector] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [onlyCheapest, setOnlyCheapest] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number>(10);
+  const containerRef = useRef<HTMLDivElement>(null);
   const styleConfig = MAP_STYLES[currentStyle];
 
   const validStations = useMemo(
@@ -94,51 +170,125 @@ export default function GasStationsOverviewMap({
     [stations]
   );
 
+  // Ordenar por precio para destacar las mejores
+  const rankedStationIds = useMemo(() => {
+    const sorted = [...validStations]
+      .filter((s) => s.price !== null && s.price > 0)
+      .sort((a, b) => (a.price ?? 999) - (b.price ?? 999));
+    return new Set(sorted.slice(0, 15).map((s) => s.id));
+  }, [validStations]);
+
+  const displayedStations = useMemo(() => {
+    if (onlyCheapest) {
+      return validStations.filter((s) => rankedStationIds.has(s.id));
+    }
+    return validStations;
+  }, [validStations, onlyCheapest, rankedStationIds]);
+
   const defaultCenter: [number, number] =
     validStations.length > 0
       ? [validStations[0].lat, validStations[0].lng]
       : [40.4168, -3.7038];
 
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
   return (
-    <div className="relative h-full w-full">
-      {/* Map Layer Selector */}
-      <div className="absolute right-3 top-3 z-[1000] flex flex-col items-end">
+    <div
+      ref={containerRef}
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-[9999] h-screen w-screen bg-background"
+          : "relative h-full w-full"
+      }
+    >
+      {/* Map Control Buttons (Top Right) */}
+      <div className="absolute right-3 top-3 z-[1000] flex flex-wrap items-center justify-end gap-2">
+        {/* Toggle Top Cheapest */}
         <button
           type="button"
-          onClick={() => setOpenSelector((prev) => !prev)}
-          className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
+          onClick={() => setOnlyCheapest((prev) => !prev)}
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-md backdrop-blur-md transition ${
+            onlyCheapest
+              ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+              : "border-border/70 bg-card/90 text-foreground hover:bg-card"
+          }`}
+          title="Ver solo las 15 más baratas para no saturar el mapa"
         >
-          <Layers size={14} className="text-primary" />
-          <span>{styleConfig.name}</span>
+          <Sparkles size={13} className={onlyCheapest ? "text-emerald-400" : "text-amber-500"} />
+          <span>{onlyCheapest ? "Top 15 Baratas" : "Ver todas"}</span>
         </button>
 
-        {openSelector && (
-          <div className="mt-1 flex flex-col gap-1 rounded-lg border border-border/70 bg-card/95 p-1 shadow-lg backdrop-blur-md">
-            {(Object.keys(MAP_STYLES) as MapStyleKey[]).map((key) => {
-              const item = MAP_STYLES[key];
-              const Icon = item.icon;
-              const active = key === currentStyle;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => {
-                    setCurrentStyle(key);
-                    setOpenSelector(false);
-                  }}
-                  className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition ${
-                    active
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <Icon size={14} />
-                  <span>{item.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Layer Selector */}
+        <div className="relative flex flex-col items-end">
+          <button
+            type="button"
+            onClick={() => setOpenSelector((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-3 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
+          >
+            <Layers size={14} className="text-primary" />
+            <span>{styleConfig.name}</span>
+          </button>
+
+          {openSelector && (
+            <div className="absolute right-0 top-9 mt-1 flex flex-col gap-1 rounded-lg border border-border/70 bg-card/95 p-1 shadow-lg backdrop-blur-md min-w-[120px]">
+              {(Object.keys(MAP_STYLES) as MapStyleKey[]).map((key) => {
+                const item = MAP_STYLES[key];
+                const Icon = item.icon;
+                const active = key === currentStyle;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setCurrentStyle(key);
+                      setOpenSelector(false);
+                    }}
+                    className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition ${
+                      active
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{item.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Fullscreen Button */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-card/90 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition hover:bg-card"
+          title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla completa"}
+        >
+          {isFullscreen ? (
+            <>
+              <Minimize2 size={14} className="text-primary" />
+              <span className="hidden sm:inline">Cerrar</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 size={14} className="text-primary" />
+              <span className="hidden sm:inline">Pantalla completa</span>
+            </>
+          )}
+        </button>
       </div>
 
       <MapContainer
@@ -154,43 +304,64 @@ export default function GasStationsOverviewMap({
           maxZoom={styleConfig.maxZoom}
         />
 
-        <MapBoundsController stations={validStations} />
+        <MapViewController
+          stations={validStations}
+          isFullscreen={isFullscreen}
+          onZoomChange={setZoomLevel}
+        />
 
-        {validStations.map((s) => (
-          <Marker
-            key={s.id}
-            position={[s.lat, s.lng]}
-            icon={createPriceMarker(s.price, Boolean(s.isCheapest))}
-          >
-            <Popup className="station-popup">
-              <div className="p-1 text-xs">
-                <span className="font-bold uppercase text-[10px] text-muted-foreground">
-                  {s.brand}
-                </span>
-                <p className="font-bold text-sm text-foreground leading-snug">
-                  {s.name}
-                </p>
-                <p className="text-muted-foreground mt-0.5">
-                  {s.address}, {s.municipality}
-                </p>
-                <div className="mt-2 flex items-center justify-between border-t border-border pt-1.5">
-                  <span className="text-[11px] text-muted-foreground">
-                    {fuelLabel}:
-                  </span>
-                  <span className="font-extrabold text-primary">
-                    {s.price ? `${s.price.toFixed(3)} €/L` : "N/D"}
-                  </span>
+        {displayedStations.map((s) => {
+          const isTopRanked = rankedStationIds.has(s.id);
+          // En zoom bajo (< 12) y mostrando todas, solo top 15 llevan badge grande, el resto punto compacto
+          const isMini = !onlyCheapest && zoomLevel < 12 && !isTopRanked;
+
+          return (
+            <Marker
+              key={s.id}
+              position={[s.lat, s.lng]}
+              zIndexOffset={s.isCheapest ? 2000 : isTopRanked ? 1000 : 100}
+              icon={createPriceMarker(s.price, Boolean(s.isCheapest), isMini)}
+            >
+              <Popup className="station-popup">
+                <div className="p-0.5 text-xs min-w-[190px]">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-bold uppercase text-[10px] text-zinc-400">
+                      {s.brand}
+                    </span>
+                    {s.isCheapest && (
+                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
+                        MÁS BARATO
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="font-bold text-sm text-zinc-100 leading-snug mt-1 line-clamp-1">
+                    {s.name}
+                  </p>
+                  <p className="text-zinc-400 mt-0.5 text-[11px] line-clamp-2">
+                    {s.address}, {s.municipality}
+                  </p>
+
+                  <div className="mt-2.5 flex items-center justify-between border-t border-zinc-800 pt-2">
+                    <span className="text-[11px] text-zinc-300">
+                      {fuelLabel}:
+                    </span>
+                    <span className="font-extrabold text-sm text-amber-500">
+                      {s.price ? `${s.price.toFixed(3)} €/L` : "N/D"}
+                    </span>
+                  </div>
+
+                  <Link
+                    href={`/gasolineras/${s.id}?provincia=${provinceId}`}
+                    className="mt-3 block text-center rounded-lg bg-amber-600 hover:bg-amber-500 py-1.5 px-3 text-xs font-semibold text-white transition-colors"
+                  >
+                    Ver ficha completa
+                  </Link>
                 </div>
-                <Link
-                  href={`/gasolineras/${s.id}?provincia=${provinceId}`}
-                  className="mt-2.5 block text-center rounded-md bg-primary py-1 px-2 text-[11px] font-bold text-primary-foreground hover:opacity-90 transition"
-                >
-                  Ver ficha completa
-                </Link>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

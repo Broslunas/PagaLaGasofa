@@ -293,10 +293,10 @@ export default function GasolinerasPage() {
                       setLocationDetected(false);
                     }}
                     aria-label="Seleccionar provincia"
-                    className="h-10 w-full appearance-none rounded-xl border border-input bg-background/80 px-3.5 pr-10 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 dark:bg-input/20"
+                    className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-input bg-card px-3.5 pr-10 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 dark:bg-card"
                   >
                     {PROVINCES.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id} className="bg-card text-foreground">
                         {p.name}
                       </option>
                     ))}
@@ -315,10 +315,10 @@ export default function GasolinerasPage() {
                     value={selectedFuel}
                     onChange={(e) => setSelectedFuel(e.target.value)}
                     aria-label="Seleccionar tipo de carburante"
-                    className="h-10 w-full appearance-none rounded-xl border border-input bg-background/80 px-3.5 pr-10 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 dark:bg-input/20"
+                    className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-input bg-card px-3.5 pr-10 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20 dark:bg-card"
                   >
                     {FUEL_TYPES.map((f) => (
-                      <option key={f.id} value={f.id}>
+                      <option key={f.id} value={f.id} className="bg-card text-foreground">
                         {f.label}
                       </option>
                     ))}

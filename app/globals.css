@@ -133,6 +133,48 @@
   h4 {
     @apply font-heading;
   }
+
+  select {
+    color-scheme: light dark;
+  }
+
+  select option {
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+}
+
+/* Leaflet Custom Marker & Popup Theme Fixes */
+.leaflet-div-icon.custom-gas-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #18181b !important;
+  color: #fafafa !important;
+  border-radius: 1rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background-color: #18181b !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: #a1a1aa !important;
+  padding: 6px 8px !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
 }
 
 .map-pin-pulse {
