@@ -213,6 +213,7 @@ export default function GasolinerasPage() {
       lat: s.lat,
       lng: s.lng,
       price: s.prices[selectedFuel as keyof typeof s.prices],
+      prices: s.prices,
       isCheapest:
         s.prices[selectedFuel as keyof typeof s.prices] === cheapestPrice,
     }));

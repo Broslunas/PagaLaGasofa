@@ -17,6 +17,13 @@ export interface MapStationItem {
   lat: number;
   lng: number;
   price: number | null;
+  prices?: {
+    gasolina95?: number | null;
+    gasolina98?: number | null;
+    diesel?: number | null;
+    dieselPremium?: number | null;
+    glp?: number | null;
+  };
   isCheapest?: boolean;
 }
 
@@ -186,6 +193,7 @@ export default function GasStationsOverviewMap({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [onlyCheapest, setOnlyCheapest] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number>(10);
+  const [hoveredStation, setHoveredStation] = useState<MapStationItem | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const styleConfig = MAP_STYLES[currentStyle];
 
@@ -345,6 +353,10 @@ export default function GasStationsOverviewMap({
               position={[s.lat, s.lng]}
               zIndexOffset={s.isCheapest ? 2000 : isTopRanked ? 1000 : 100}
               icon={createPriceMarker(s.price, Boolean(s.isCheapest), isMini)}
+              eventHandlers={{
+                mouseover: () => setHoveredStation(s),
+                mouseout: () => setHoveredStation((prev) => (prev?.id === s.id ? null : prev)),
+              }}
             >
               <Popup className="station-popup">
                 <div className="p-0.5 text-xs min-w-[190px]">
@@ -387,6 +399,56 @@ export default function GasStationsOverviewMap({
           );
         })}
       </MapContainer>
+
+      {/* Floating Hover Info Card */}
+      {hoveredStation && (
+        <div className="pointer-events-none absolute right-4 top-14 z-[1000] w-72 rounded-2xl border border-border/80 bg-card/95 p-4 shadow-xl backdrop-blur-md transition-all duration-150 animate-in fade-in zoom-in-95">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                {hoveredStation.brand}
+              </span>
+              <h4 className="text-sm font-bold text-foreground leading-snug line-clamp-1">
+                {hoveredStation.name}
+              </h4>
+              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                {hoveredStation.municipality || hoveredStation.address}
+              </p>
+            </div>
+            {hoveredStation.isCheapest && (
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                Top Barata
+              </span>
+            )}
+          </div>
+
+          {hoveredStation.prices && (
+            <div className="mt-3.5 space-y-1.5 border-t border-border/60 pt-2.5">
+              {[
+                { label: "G95", val: hoveredStation.prices.gasolina95 },
+                { label: "G98", val: hoveredStation.prices.gasolina98 },
+                { label: "Diésel", val: hoveredStation.prices.diesel },
+                { label: "Diésel+", val: hoveredStation.prices.dieselPremium },
+                { label: "GLP", val: hoveredStation.prices.glp },
+              ]
+                .filter((f) => f.val !== null && f.val !== undefined && f.val > 0)
+                .map((fuel) => (
+                  <div
+                    key={fuel.label}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="font-medium text-muted-foreground">
+                      {fuel.label}
+                    </span>
+                    <span className="font-mono font-bold text-foreground">
+                      {fuel.val?.toFixed(3)} €
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
