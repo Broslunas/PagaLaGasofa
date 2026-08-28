@@ -71,7 +71,7 @@ export function StepSummary({
             </div>
           </div>
           <span className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-            {distanceKm} km {isRoundTrip ? "· I/V" : ""}
+            {distanceKm.toFixed(1)} km {isRoundTrip ? "· I/V" : ""}
           </span>
         </div>
 
@@ -111,7 +111,7 @@ export function StepSummary({
                 <span className="flex items-center gap-1.5">
                   <Fuel size={13} className="text-primary" /> Consumo coche
                 </span>
-                <span className="font-medium text-foreground">{consumptionL100} l/100km</span>
+                <span className="font-medium text-foreground">{consumptionL100.toFixed(1)} l/100km</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/40 text-muted-foreground">
                 <span className="flex items-center gap-1.5">

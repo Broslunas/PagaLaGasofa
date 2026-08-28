@@ -20,22 +20,22 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
     <div className="flex flex-1 flex-col items-center px-4 py-8 md:py-12">
       <div className="w-full max-w-4xl space-y-6">
         {/* Header con resumen conciso de ruta */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-card/90 to-card p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-4 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-card/90 to-card p-4 shadow-sm sm:p-6 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
             <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
               <Receipt size={12} /> Ticket de viaje
             </span>
-            <div className="mt-2 flex items-center gap-2 font-heading text-xl font-bold text-foreground md:text-2xl">
-              <span>{shortOrigin}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-heading text-lg font-bold text-foreground sm:text-xl md:text-2xl">
+              <span className="break-words">{shortOrigin}</span>
               <ArrowRight size={18} className="text-primary shrink-0" />
-              <span>{shortDest}</span>
+              <span className="break-words">{shortDest}</span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 break-words text-xs text-muted-foreground">
               {trip.origin} → {trip.destination}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <CopyLinkButton shareId={shareId} />
             <Button
               variant="default"
@@ -54,40 +54,40 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
           <div className="space-y-6 md:col-span-7">
             {/* Tarjeta de métricas principales */}
             <Card className="border-border/60 bg-card/80">
-              <CardContent className="space-y-4 p-5">
-                <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-4 text-center">
-                  <div>
+              <CardContent className="space-y-4 p-4 sm:p-5">
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-3 text-center sm:gap-3 sm:p-4">
+                  <div className="min-w-0">
                     <span className="text-xs font-medium text-muted-foreground">Coste total</span>
-                    <p className="text-3xl font-extrabold text-foreground">
+                    <p className="text-2xl font-extrabold text-foreground sm:text-3xl">
                       {trip.totalCost.toFixed(2)} €
                     </p>
                   </div>
-                  <div className="border-l border-border/60">
+                  <div className="min-w-0 border-l border-border/60">
                     <span className="text-xs font-medium text-muted-foreground">
                       Por persona ({trip.passengers.length})
                     </span>
-                    <p className="text-3xl font-extrabold text-primary">
+                    <p className="text-2xl font-extrabold text-primary sm:text-3xl">
                       {trip.costPerPassenger.toFixed(2)} €
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center justify-between rounded-lg border border-border/40 p-2.5">
+                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-border/40 p-2.5">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <Route size={14} className="text-primary" /> Distancia
                     </span>
                     <span className="font-semibold text-foreground">
-                      {trip.distanceKm} km {trip.isRoundTrip ? "(I/V)" : ""}
+                      {trip.distanceKm.toFixed(1)} km {trip.isRoundTrip ? "(I/V)" : ""}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg border border-border/40 p-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-border/40 p-2.5">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <Fuel size={14} className="text-primary" /> Consumo
                     </span>
                     <span className="font-semibold text-foreground">
-                      {trip.consumptionL100} l/100km
+                      {trip.consumptionL100.toFixed(1)} l/100km
                     </span>
                   </div>
                 </div>
@@ -111,9 +111,9 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                   {trip.passengers.map((p, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2.5 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2.5 text-sm"
                     >
-                      <span className="font-medium text-foreground">
+                      <span className="min-w-0 font-medium break-words text-foreground">
                         {p.name}
                         {trip.waypoints.length > 0 &&
                           p.pickupStop != null &&

@@ -2,9 +2,13 @@ import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
 import { shortenAddress } from "@/lib/format-address";
+import { buildStaticMap } from "@/lib/static-map";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+const MAP_W = 376;
+const MAP_H = 260;
 
 export default async function Image({ params }: { params: Promise<{ shareId: string }> }) {
   const { shareId } = await params;
@@ -46,6 +50,36 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
 
   const shortOrigin = shortenAddress(trip.origin);
   const shortDest = shortenAddress(trip.destination);
+
+  // Ruta real (carretera OSRM) si la tenemos guardada, si no una línea recta origen->destino
+  const geometryPoints: [number, number][] = (() => {
+    if (!trip.geometry) return [];
+    try {
+      return JSON.parse(trip.geometry);
+    } catch {
+      return [];
+    }
+  })();
+
+  const hasCoords = trip.originLat != null && trip.originLon != null && trip.destLat != null && trip.destLon != null;
+  const mapPoints = hasCoords
+    ? geometryPoints.length > 0
+      ? geometryPoints.map(([lat, lon]) => ({ lat, lon }))
+      : [
+          { lat: trip.originLat!, lon: trip.originLon! },
+          ...trip.waypoints.map((w) => ({ lat: w.lat, lon: w.lon })),
+          { lat: trip.destLat!, lon: trip.destLon! },
+        ]
+    : [];
+
+  const staticMap = mapPoints.length > 0 ? await buildStaticMap(mapPoints, MAP_W, MAP_H) : null;
+
+  // Simplificamos la polyline para no saturar el SVG en rutas con miles de puntos
+  const routeLinePoints = staticMap
+    ? (geometryPoints.length > 0 ? geometryPoints : mapPoints.map((p): [number, number] => [p.lat, p.lon]))
+        .filter((_, i, arr) => i % Math.max(1, Math.floor(arr.length / 200)) === 0)
+        .map(([lat, lon]) => staticMap.project(lat, lon))
+    : [];
 
   return new ImageResponse(
     (
@@ -186,7 +220,7 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
               >
                 <span style={{ fontSize: 12, color: "#71717a" }}>Distancia</span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: "#e4e4e7", marginTop: 2 }}>
-                  {trip.distanceKm} km {trip.isRoundTrip ? "(I/V)" : ""}
+                  {trip.distanceKm.toFixed(1)} km {trip.isRoundTrip ? "(I/V)" : ""}
                 </span>
               </div>
 
@@ -203,7 +237,7 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
               >
                 <span style={{ fontSize: 12, color: "#71717a" }}>Consumo</span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: "#e4e4e7", marginTop: 2 }}>
-                  {trip.consumptionL100} l/100km
+                  {trip.consumptionL100.toFixed(1)} l/100km
                 </span>
               </div>
 
@@ -251,17 +285,19 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
                 overflow: "hidden",
               }}
             >
-              {/* Fondo mapa decorativo con grid */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: 0.25,
-                  backgroundImage:
-                    "linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)",
-                  backgroundSize: "28px 28px",
-                }}
-              />
+              {/* Fondo decorativo con grid (solo si no hay mapa real disponible) */}
+              {!staticMap && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: 0.25,
+                    backgroundImage:
+                      "linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)",
+                    backgroundSize: "28px 28px",
+                  }}
+                />
+              )}
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase" }}>
@@ -272,63 +308,133 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
                 </span>
               </div>
 
-              {/* Trazado esquemático SVG de la ruta */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "16px 8px",
-                  position: "relative",
-                }}
-              >
-                {/* Pin origen */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 100 }}>
-                  <div
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: "50%",
-                      background: "#22c55e",
-                      border: "3px solid #18181b",
-                      boxShadow: "0 0 10px rgba(34, 197, 94, 0.6)",
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "#e4e4e7", marginTop: 6, textAlign: "center" }}>
-                    {shortOrigin}
-                  </span>
-                </div>
-
-                {/* Línea conectora naranja con trazos */}
+              {staticMap ? (
+                /* Mapa real: tiles OSM + ruta proyectada + pines de origen/destino */
                 <div
                   style={{
                     display: "flex",
-                    flex: 1,
-                    height: 4,
-                    background: "#ea580c",
-                    margin: "0 10px",
-                    borderRadius: 2,
-                    boxShadow: "0 0 8px rgba(234, 88, 12, 0.8)",
+                    position: "relative",
+                    width: MAP_W,
+                    height: MAP_H,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    border: "1px solid #27272a",
                   }}
-                />
-
-                {/* Pin destino */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 100 }}>
+                >
+                  {staticMap.tiles.map((t, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={t.dataUrl}
+                      width={256}
+                      height={256}
+                      alt=""
+                      style={{ position: "absolute", left: t.left, top: t.top }}
+                    />
+                  ))}
+                  {/* Velo oscuro para integrar el tile claro de OSM con el tema dark */}
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(9, 9, 11, 0.32)" }} />
+                  <svg width={MAP_W} height={MAP_H} style={{ position: "absolute", left: 0, top: 0 }}>
+                    <polyline
+                      points={routeLinePoints.map((p) => `${p.x},${p.y}`).join(" ")}
+                      fill="none"
+                      stroke="#7c2d12"
+                      strokeWidth={7}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <polyline
+                      points={routeLinePoints.map((p) => `${p.x},${p.y}`).join(" ")}
+                      fill="none"
+                      stroke="#ea580c"
+                      strokeWidth={4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                   <div
                     style={{
-                      width: 18,
-                      height: 18,
+                      position: "absolute",
+                      left: staticMap.project(trip.originLat!, trip.originLon!).x - 8,
+                      top: staticMap.project(trip.originLat!, trip.originLon!).y - 8,
+                      width: 16,
+                      height: 16,
                       borderRadius: "50%",
-                      background: "#ef4444",
-                      border: "3px solid #18181b",
-                      boxShadow: "0 0 10px rgba(239, 68, 68, 0.6)",
+                      background: "#22c55e",
+                      border: "3px solid #09090b",
+                      boxShadow: "0 0 10px rgba(34, 197, 94, 0.7)",
                     }}
                   />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "#e4e4e7", marginTop: 6, textAlign: "center" }}>
-                    {shortDest}
-                  </span>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: staticMap.project(trip.destLat!, trip.destLon!).x - 8,
+                      top: staticMap.project(trip.destLat!, trip.destLon!).y - 8,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#ef4444",
+                      border: "3px solid #09090b",
+                      boxShadow: "0 0 10px rgba(239, 68, 68, 0.7)",
+                    }}
+                  />
                 </div>
-              </div>
+              ) : (
+                /* Fallback esquemático: sin coordenadas guardadas (tickets antiguos) */
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 8px",
+                    position: "relative",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 100 }}>
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        background: "#22c55e",
+                        border: "3px solid #18181b",
+                        boxShadow: "0 0 10px rgba(34, 197, 94, 0.6)",
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "#e4e4e7", marginTop: 6, textAlign: "center" }}>
+                      {shortOrigin}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flex: 1,
+                      height: 4,
+                      background: "#ea580c",
+                      margin: "0 10px",
+                      borderRadius: 2,
+                      boxShadow: "0 0 8px rgba(234, 88, 12, 0.8)",
+                    }}
+                  />
+
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 100 }}>
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        background: "#ef4444",
+                        border: "3px solid #18181b",
+                        boxShadow: "0 0 10px rgba(239, 68, 68, 0.6)",
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "#e4e4e7", marginTop: 6, textAlign: "center" }}>
+                      {shortDest}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Lista breve de pasajeros */}
               <div style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>

@@ -34,7 +34,9 @@ export async function POST(request: Request) {
   if (!Array.isArray(legsKm) || legsKm.length !== stopsCount - 1 || legsKm.some((km) => typeof km !== "number" || km < 0)) {
     return Response.json({ error: "Distancias por tramo inválidas" }, { status: 400 });
   }
-  const distanceKm = legsKm.reduce((a: number, b: number) => a + b, 0);
+  // Redondeo a 1 decimal: sumar floats ya redondeados (25.2+25.2+25.2) arrastra
+  // basura de coma flotante (75.60000000000001) que se ve feo en el ticket.
+  const distanceKm = Math.round(legsKm.reduce((a: number, b: number) => a + b, 0) * 10) / 10;
   if (distanceKm <= 0) {
     return Response.json({ error: "Distancia inválida" }, { status: 400 });
   }
