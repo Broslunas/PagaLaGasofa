@@ -11,7 +11,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
   if (!trip) notFound();
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-4 py-12 dark:bg-black">
+    <div className="flex flex-1 flex-col items-center gap-6 px-4 py-12">
       <div className="flex w-full max-w-md flex-col gap-6">
         <Card>
           <CardHeader>
@@ -37,7 +37,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                 <span>{p.name}</span>
                 <span className="flex items-center gap-2">
                   <span>{p.amount.toFixed(2)} €</span>
-                  <span className={p.hasPaid ? "text-green-600" : "text-muted-foreground"}>
+                  <span className={p.hasPaid ? "text-green-600 dark:text-green-500" : "text-muted-foreground"}>
                     {p.hasPaid ? "Pagado" : "Pendiente"}
                   </span>
                 </span>

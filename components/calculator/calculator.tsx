@@ -194,7 +194,7 @@ export function Calculator() {
               <Label htmlFor="myVehicle">Mi vehículo</Label>
               <select
                 id="myVehicle"
-                className="h-9 rounded-md border bg-transparent px-3 text-sm"
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
                 value={selectedVehicleId}
                 onChange={(e) => selectVehicle(e.target.value)}
               >
@@ -207,8 +207,11 @@ export function Calculator() {
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5 rounded-lg border p-3">
-            <span className="text-sm font-medium">Estimar consumo con IA (opcional)</span>
+          <div className="flex flex-col gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              <Sparkles size={14} className="text-primary" />
+              Estimar consumo con IA (opcional)
+            </span>
             <div className="grid grid-cols-3 gap-2">
               <Input
                 placeholder="Marca"

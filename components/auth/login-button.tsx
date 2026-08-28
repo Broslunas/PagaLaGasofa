@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 export function LoginButton() {
   const { data: session, status } = useSession();
@@ -14,22 +15,16 @@ export function LoginButton() {
         <Link href="/dashboard" className="text-sm font-medium hover:underline">
           Mi panel
         </Link>
-        <button
-          onClick={() => signOut()}
-          className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={() => signOut()}>
           Cerrar sesión ({session.user.name})
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
-      onClick={() => signIn("google")}
-      className="rounded-full bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-[#383838] dark:hover:bg-[#ccc]"
-    >
+    <Button type="button" size="sm" onClick={() => signIn("google")}>
       Iniciar sesión
-    </button>
+    </Button>
   );
 }
