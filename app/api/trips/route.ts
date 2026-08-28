@@ -8,6 +8,7 @@ import { calculateTrip } from "@/lib/calculator";
 export async function POST(request: Request) {
   const body = await request.json();
   const {
+    title,
     origin,
     destination,
     originLat,
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
   const trip = await prisma.trip.create({
     data: {
       userId: session?.user?.id,
+      title: typeof title === "string" && title.trim() ? title.trim() : null,
       origin,
       destination,
       originLat: typeof originLat === "number" ? originLat : null,

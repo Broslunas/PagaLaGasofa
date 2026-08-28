@@ -36,6 +36,7 @@ function clampPassenger(p: Passenger, lastStopIndex: number, isDriver = false): 
 export function Calculator() {
   const [step, setStep] = useState(0);
 
+  const [title, setTitle] = useState("");
   const [origin, setOrigin] = useState<GeoPoint | null>(null);
   const [destination, setDestination] = useState<GeoPoint | null>(null);
   const [waypoints, setWaypoints] = useState<(GeoPoint | null)[]>([]);
@@ -124,6 +125,7 @@ export function Calculator() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          title: title.trim() || undefined,
           origin: origin?.label ?? "",
           destination: destination?.label ?? "",
           originLat: origin?.lat,
@@ -261,6 +263,8 @@ export function Calculator() {
       <div className="min-h-0 flex-1">
         {step === 0 && (
           <StepRoute
+            title={title}
+            onTitleChange={setTitle}
             origin={origin}
             destination={destination}
             waypoints={waypoints}
@@ -314,6 +318,7 @@ export function Calculator() {
         )}
         {step === 3 && (
           <StepSummary
+            title={title}
             origin={origin}
             destination={destination}
             waypoints={waypoints}

@@ -148,21 +148,57 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
                 </span>
               </div>
 
-              {/* Ruta A -> B */}
+              {/* Ruta A -> B o Título personalizado */}
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  fontSize: 34,
-                  fontWeight: 800,
+                  flexDirection: "column",
                   marginTop: 16,
-                  color: "#ffffff",
-                  letterSpacing: -0.5,
                 }}
               >
-                <span>{shortOrigin}</span>
-                <span style={{ margin: "0 12px", color: "#ea580c" }}>→</span>
-                <span>{shortDest}</span>
+                {trip.title ? (
+                  <>
+                    <span
+                      style={{
+                        fontSize: 36,
+                        fontWeight: 800,
+                        color: "#ffffff",
+                        letterSpacing: -0.5,
+                      }}
+                    >
+                      {trip.title}
+                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: 20,
+                        fontWeight: 600,
+                        color: "#a1a1aa",
+                        marginTop: 4,
+                      }}
+                    >
+                      <span>{shortOrigin}</span>
+                      <span style={{ margin: "0 8px", color: "#ea580c" }}>→</span>
+                      <span>{shortDest}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: 34,
+                      fontWeight: 800,
+                      color: "#ffffff",
+                      letterSpacing: -0.5,
+                    }}
+                  >
+                    <span>{shortOrigin}</span>
+                    <span style={{ margin: "0 12px", color: "#ea580c" }}>→</span>
+                    <span>{shortDest}</span>
+                  </div>
+                )}
               </div>
             </div>
 

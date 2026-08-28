@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { CopyLinkButton } from "@/components/ticket/copy-link-button";
+import { DownloadImageButton } from "@/components/ticket/download-image-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
-import { Button } from "@/components/ui/button";
 import { shortenAddress } from "@/lib/format-address";
-import { ArrowRight, CheckCircle2, CircleDashed, Download, Fuel, Receipt, Route, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDashed, Fuel, Receipt, Route, Users } from "lucide-react";
 
 export default async function TicketPage({ params }: { params: Promise<{ shareId: string }> }) {
   const { shareId } = await params;
@@ -25,26 +25,32 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
             <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
               <Receipt size={12} /> Ticket de viaje
             </span>
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-heading text-lg font-bold text-foreground sm:text-xl md:text-2xl">
-              <span className="break-words">{shortOrigin}</span>
-              <ArrowRight size={18} className="text-primary shrink-0" />
-              <span className="break-words">{shortDest}</span>
-            </div>
+            {trip.title ? (
+              <div className="mt-2">
+                <h1 className="font-heading text-xl font-bold text-foreground sm:text-2xl md:text-3xl break-words">
+                  {trip.title}
+                </h1>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-muted-foreground">
+                  <span className="break-words">{shortOrigin}</span>
+                  <ArrowRight size={14} className="text-primary shrink-0" />
+                  <span className="break-words">{shortDest}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-heading text-lg font-bold text-foreground sm:text-xl md:text-2xl">
+                <span className="break-words">{shortOrigin}</span>
+                <ArrowRight size={18} className="text-primary shrink-0" />
+                <span className="break-words">{shortDest}</span>
+              </div>
+            )}
             <p className="mt-1 break-words text-xs text-muted-foreground">
               {trip.origin} → {trip.destination}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <CopyLinkButton shareId={shareId} />
-            <Button
-              variant="default"
-              nativeButton={false}
-              render={<a href={`/t/${shareId}/opengraph-image`} download={`ticket-${shareId}.png`} />}
-            >
-              <Download size={16} />
-              Descargar PNG
-            </Button>
+            <DownloadImageButton shareId={shareId} />
           </div>
         </div>
 

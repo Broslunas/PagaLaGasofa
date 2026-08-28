@@ -23,6 +23,7 @@ const LocationMap = dynamic(
 );
 
 export function StepSummary({
+  title,
   origin,
   destination,
   waypoints,
@@ -37,6 +38,7 @@ export function StepSummary({
   ticketError,
   onGenerate,
 }: {
+  title: string;
   origin: GeoPoint | null;
   destination: GeoPoint | null;
   waypoints: (GeoPoint | null)[];
@@ -60,17 +62,30 @@ export function StepSummary({
       <div className="flex flex-1 flex-col gap-3">
         {/* Banner ruta A -> B */}
         <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3.5">
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0 mr-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Trayecto
+              {title.trim() ? "Viaje" : "Trayecto"}
             </span>
-            <div className="flex items-center gap-2 font-heading text-base font-semibold text-foreground">
-              <span>{shortOrigin}</span>
-              <ArrowRight size={16} className="text-primary shrink-0" />
-              <span>{shortDest}</span>
-            </div>
+            {title.trim() ? (
+              <>
+                <h3 className="font-heading text-base font-semibold text-foreground truncate">
+                  {title.trim()}
+                </h3>
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>{shortOrigin}</span>
+                  <ArrowRight size={12} className="text-primary shrink-0" />
+                  <span>{shortDest}</span>
+                </p>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 font-heading text-base font-semibold text-foreground">
+                <span>{shortOrigin}</span>
+                <ArrowRight size={16} className="text-primary shrink-0" />
+                <span>{shortDest}</span>
+              </div>
+            )}
           </div>
-          <span className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+          <span className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary shrink-0">
             {distanceKm.toFixed(1)} km {isRoundTrip ? "· I/V" : ""}
           </span>
         </div>

@@ -28,6 +28,12 @@ export function Header() {
           >
             Calculadora
           </Link>
+          <Link
+            href="/gasolineras"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Gasolineras
+          </Link>
           <ThemeToggle />
           <LoginButton />
         </nav>
@@ -53,6 +59,13 @@ export function Header() {
             onClick={() => setOpen(false)}
           >
             Calculadora
+          </Link>
+          <Link
+            href="/gasolineras"
+            className="rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            onClick={() => setOpen(false)}
+          >
+            Gasolineras
           </Link>
           <div className="flex items-center justify-between px-2 py-2">
             <span className="text-sm font-medium text-muted-foreground">Tema</span>

@@ -24,6 +24,8 @@ const LocationMap = dynamic(
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
 export function StepRoute({
+  title,
+  onTitleChange,
   origin,
   destination,
   waypoints,
@@ -37,6 +39,8 @@ export function StepRoute({
   distanceError,
   onRetryDistance,
 }: {
+  title: string;
+  onTitleChange: (s: string) => void;
   origin: GeoPoint | null;
   destination: GeoPoint | null;
   waypoints: (GeoPoint | null)[];
@@ -73,6 +77,17 @@ export function StepRoute({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 md:flex-row">
       <div className="flex shrink-0 flex-col gap-3 overflow-y-auto md:w-80">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="trip-title">Nombre del viaje (opcional)</Label>
+          <Input
+            id="trip-title"
+            type="text"
+            placeholder="p.ej. Escapada a la playa, Festival..."
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+          />
+        </div>
+
         <LocationField
           id="origin"
           label="Origen"

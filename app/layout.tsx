@@ -78,12 +78,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           strategy="afterInteractive"
         />
       </head>
-      <body className="flex h-dvh flex-col">
+      <body className="flex min-h-screen flex-col">
         <ThemeProvider>
           <SessionProvider>
             <RegisterSW />
             <Header />
-            {children}
+            <main className="flex-1">{children}</main>
             <ConditionalFooter />
             <InstallPrompt />
           </SessionProvider>
