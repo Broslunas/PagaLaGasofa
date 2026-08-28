@@ -86,11 +86,18 @@ type Passenger {
   name    String
   amount  Float
   hasPaid Boolean @default(false)
+  // Índices en la lista ordenada de stops [origen, ...paradas, destino].
+  // Nullable: los tickets creados antes de esta feature no los tienen, y en
+  // Mongo @default solo aplica al escribir, no al leer un doc existente que
+  // no tenga el campo. null se trata en código como "viaje completo".
+  pickupStop  Int?
+  dropoffStop Int?
 }
 
 type PointCoord {
-  lat Float
-  lon Float
+  label String
+  lat   Float
+  lon   Float
 }
 
 model Trip {
@@ -106,6 +113,7 @@ model Trip {
   destLat     Float?
   destLon     Float?
   geometry    String?
+  waypoints   PointCoord[]
 
   distanceKm  Float
   isRoundTrip Boolean @default(false)

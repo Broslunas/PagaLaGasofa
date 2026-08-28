@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { type GeoPoint } from "@/components/calculator/location-field";
+import { buildStops } from "@/lib/stops";
 
 const LocationMap = dynamic(
   () => import("@/components/calculator/location-map").then((m) => m.LocationMap),
@@ -23,6 +24,7 @@ export function TicketMap({
   originLon,
   destLat,
   destLon,
+  waypoints,
   geometry,
 }: {
   originLabel: string;
@@ -31,6 +33,7 @@ export function TicketMap({
   originLon?: number | null;
   destLat?: number | null;
   destLon?: number | null;
+  waypoints?: { label: string; lat: number; lon: number }[];
   geometry?: string | null;
 }) {
   const origin: GeoPoint = useMemo(
@@ -51,6 +54,11 @@ export function TicketMap({
     [destinationLabel, destLat, destLon]
   );
 
+  const waypointPoints: GeoPoint[] = useMemo(
+    () => (waypoints ?? []).map((w) => ({ label: w.label, lat: w.lat, lon: w.lon })),
+    [waypoints]
+  );
+
   const routePolyline: [number, number][] = useMemo(() => {
     if (!geometry) return [];
     try {
@@ -62,13 +70,7 @@ export function TicketMap({
 
   return (
     <div className="h-full min-h-[300px] w-full overflow-hidden rounded-2xl border border-border/60 shadow-sm">
-      <LocationMap
-        origin={origin}
-        destination={destination}
-        routePolyline={routePolyline}
-        activeField="origin"
-        onPick={() => {}}
-      />
+      <LocationMap stops={buildStops(origin, waypointPoints, destination)} routePolyline={routePolyline} />
     </div>
   );
 }

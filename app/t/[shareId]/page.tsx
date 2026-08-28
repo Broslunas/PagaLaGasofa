@@ -14,6 +14,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
 
   const shortOrigin = shortenAddress(trip.origin);
   const shortDest = shortenAddress(trip.destination);
+  const stopLabels = ["Origen", ...trip.waypoints.map((_, i) => `Parada ${i + 1}`), "Destino"];
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-8 md:py-12">
@@ -112,7 +113,16 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                       key={i}
                       className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2.5 text-sm"
                     >
-                      <span className="font-medium text-foreground">{p.name}</span>
+                      <span className="font-medium text-foreground">
+                        {p.name}
+                        {trip.waypoints.length > 0 &&
+                          p.pickupStop != null &&
+                          p.dropoffStop != null && (
+                            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
+                              {stopLabels[p.pickupStop]} → {stopLabels[p.dropoffStop]}
+                            </span>
+                          )}
+                      </span>
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-foreground">{p.amount.toFixed(2)} €</span>
                         <span
@@ -149,6 +159,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
               originLon={trip.originLon}
               destLat={trip.destLat}
               destLon={trip.destLon}
+              waypoints={trip.waypoints}
               geometry={trip.geometry}
             />
           </div>

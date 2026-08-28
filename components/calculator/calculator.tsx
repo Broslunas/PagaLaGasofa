@@ -14,12 +14,33 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const STEPS = ["Ruta", "Vehículo y coste", "Pasajeros", "Resumen"] as const;
 
+export interface Passenger {
+  name: string;
+  pickupStop: number;
+  dropoffStop: number;
+}
+
+// Evita índices de subida/bajada inválidos cuando el número de paradas
+// cambia (p.ej. se quita una parada y un pasajero bajaba justo ahí). El
+// conductor (índice 0) siempre hace la ruta completa, igual que fuerza el
+// servidor en app/api/trips/route.ts — si no, al añadir una parada su
+// dropoffStop se queda anclado al viejo tramo único y paga de menos.
+function clampPassenger(p: Passenger, lastStopIndex: number, isDriver = false): Passenger {
+  if (isDriver) return { ...p, pickupStop: 0, dropoffStop: lastStopIndex };
+  const pickupStop = Math.max(0, Math.min(p.pickupStop, lastStopIndex - 1));
+  let dropoffStop = Math.max(1, Math.min(p.dropoffStop, lastStopIndex));
+  if (dropoffStop <= pickupStop) dropoffStop = Math.min(pickupStop + 1, lastStopIndex);
+  return { ...p, pickupStop, dropoffStop };
+}
+
 export function Calculator() {
   const [step, setStep] = useState(0);
 
   const [origin, setOrigin] = useState<GeoPoint | null>(null);
   const [destination, setDestination] = useState<GeoPoint | null>(null);
+  const [waypoints, setWaypoints] = useState<(GeoPoint | null)[]>([]);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [legsKm, setLegsKm] = useState<number[]>([]);
   const [routePolyline, setRoutePolyline] = useState<[number, number][]>([]);
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [distanceError, setDistanceError] = useState("");
@@ -29,7 +50,8 @@ export function Calculator() {
   const [fuelPricePerLiter, setFuelPricePerLiter] = useState(1.5);
   const [tollsCost, setTollsCost] = useState(0);
   const [extraCosts, setExtraCosts] = useState(0);
-  const [passengerNames, setPassengerNames] = useState<string[]>([""]);
+  const lastStopIndex = waypoints.length + 1;
+  const [passengers, setPassengers] = useState<Passenger[]>([{ name: "", pickupStop: 0, dropoffStop: 1 }]);
 
   const [vehicleBrand, setVehicleBrand] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
@@ -64,6 +86,13 @@ export function Calculator() {
       });
   }, [authSession?.user]);
 
+  // Si el número de paradas cambia, reencuadra los índices de subida/bajada
+  // de cada pasajero para que sigan siendo válidos.
+  useEffect(() => {
+    setPassengers((ps) => ps.map((p, i) => clampPassenger(p, lastStopIndex, i === 0)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastStopIndex]);
+
   function selectVehicle(id: string) {
     setSelectedVehicleId(id);
     const vehicle = myVehicles.find((v) => v.id === id);
@@ -71,19 +100,26 @@ export function Calculator() {
   }
 
   function addPassenger() {
-    setPassengerNames((names) => [...names, ""]);
+    setPassengers((ps) => [...ps, { name: "", pickupStop: 0, dropoffStop: lastStopIndex }]);
   }
   function removePassenger(i: number) {
-    setPassengerNames((names) => names.filter((_, idx) => idx !== i));
+    setPassengers((ps) => ps.filter((_, idx) => idx !== i));
   }
   function renamePassenger(i: number, name: string) {
-    setPassengerNames((names) => names.map((n, idx) => (idx === i ? name : n)));
+    setPassengers((ps) => ps.map((p, idx) => (idx === i ? { ...p, name } : p)));
+  }
+  function setPickupStop(i: number, stop: number) {
+    setPassengers((ps) => ps.map((p, idx) => (idx === i ? clampPassenger({ ...p, pickupStop: stop }, lastStopIndex) : p)));
+  }
+  function setDropoffStop(i: number, stop: number) {
+    setPassengers((ps) => ps.map((p, idx) => (idx === i ? clampPassenger({ ...p, dropoffStop: stop }, lastStopIndex) : p)));
   }
 
   async function generateTicket() {
     setTicketLoading(true);
     setTicketError("");
     try {
+      const filledWaypoints = waypoints.filter((w): w is GeoPoint => w !== null);
       const res = await fetch("/api/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,14 +130,15 @@ export function Calculator() {
           originLon: origin?.lon,
           destLat: destination?.lat,
           destLon: destination?.lon,
+          waypoints: filledWaypoints.map((w) => ({ label: w.label, lat: w.lat, lon: w.lon })),
           geometry: routePolyline.length > 0 ? JSON.stringify(routePolyline) : undefined,
-          distanceKm,
+          legsKm,
           isRoundTrip,
           consumptionL100,
           fuelPricePerLiter,
           tollsCost,
           extraCosts,
-          passengerNames,
+          passengers,
         }),
       });
       const data = await res.json();
@@ -131,15 +168,20 @@ export function Calculator() {
   }
 
   async function fetchDistance() {
-    if (!origin || !destination) return;
+    const points = [origin, ...waypoints, destination];
+    if (points.some((p) => !p)) return;
     setDistanceLoading(true);
     setDistanceError("");
     try {
-      const url = `/api/distance?originLat=${origin.lat}&originLon=${origin.lon}&destLat=${destination.lat}&destLon=${destination.lon}`;
-      const res = await fetch(url);
+      const res = await fetch("/api/distance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points: points.map((p) => ({ lat: p!.lat, lon: p!.lon })) }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al calcular la distancia");
       setDistanceKm(data.distanceKm);
+      setLegsKm(Array.isArray(data.legs) ? data.legs : []);
       if (Array.isArray(data.geometry)) {
         setRoutePolyline(data.geometry);
       }
@@ -150,28 +192,38 @@ export function Calculator() {
     }
   }
 
-  // Ruta por carretera automática (OSRM) en cuanto hay origen y destino, sin esperar a un clic.
+  // Ruta por carretera automática (OSRM) en cuanto todos los puntos (origen,
+  // paradas, destino) están rellenos, sin esperar a un clic.
+  const pointsKey = JSON.stringify([origin, ...waypoints, destination].map((p) => (p ? [p.lat, p.lon] : null)));
   useEffect(() => {
-    if (origin && destination) {
+    if (origin && destination && waypoints.every((w) => w)) {
       fetchDistance();
     } else {
       setRoutePolyline([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin?.lat, origin?.lon, destination?.lat, destination?.lon]);
+  }, [pointsKey]);
+
+  // Manual: si no hay paradas, el km editable a mano sigue funcionando como antes.
+  function handleDistanceKmChange(n: number) {
+    setDistanceKm(n);
+    if (waypoints.length === 0) setLegsKm([n]);
+  }
 
   const result = calculateTrip({
-    distanceKm,
+    legsKm: legsKm.length === lastStopIndex ? legsKm : [distanceKm],
     isRoundTrip,
     consumptionL100,
     fuelPricePerLiter,
     tollsCost,
     extraCosts,
-    passengersCount: passengerNames.length,
+    passengers: passengers.map((p, i) => clampPassenger(p, lastStopIndex, i === 0)),
   });
 
+  const stopLabels = ["Origen", ...waypoints.map((_, i) => `Parada ${i + 1}`), "Destino"];
+
   const isLast = step === STEPS.length - 1;
-  const canAdvance = step !== 0 || distanceKm > 0;
+  const canAdvance = step !== 0 || (distanceKm > 0 && waypoints.every((w) => w));
 
   function next() {
     if (canAdvance) setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -211,10 +263,12 @@ export function Calculator() {
           <StepRoute
             origin={origin}
             destination={destination}
+            waypoints={waypoints}
             onOriginChange={setOrigin}
             onDestinationChange={setDestination}
+            onWaypointsChange={setWaypoints}
             distanceKm={distanceKm}
-            setDistanceKm={setDistanceKm}
+            setDistanceKm={handleDistanceKmChange}
             routePolyline={routePolyline}
             distanceLoading={distanceLoading}
             distanceError={distanceError}
@@ -249,20 +303,25 @@ export function Calculator() {
         )}
         {step === 2 && (
           <StepPassengers
-            passengerNames={passengerNames}
+            passengers={passengers}
+            stopLabels={stopLabels}
             addPassenger={addPassenger}
             removePassenger={removePassenger}
             renamePassenger={renamePassenger}
+            setPickupStop={setPickupStop}
+            setDropoffStop={setDropoffStop}
           />
         )}
         {step === 3 && (
           <StepSummary
             origin={origin}
             destination={destination}
+            waypoints={waypoints}
             distanceKm={distanceKm}
             isRoundTrip={isRoundTrip}
             consumptionL100={consumptionL100}
-            passengerNames={passengerNames}
+            passengers={passengers}
+            stopLabels={stopLabels}
             routePolyline={routePolyline}
             result={result}
             ticketLoading={ticketLoading}

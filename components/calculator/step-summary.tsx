@@ -4,8 +4,10 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { shortenAddress } from "@/lib/format-address";
+import { buildStops } from "@/lib/stops";
 import { ArrowRight, Fuel, Loader2, Receipt, Users, Route as RouteIcon } from "lucide-react";
 import type { CalculatorResult } from "@/lib/calculator";
+import type { Passenger } from "@/components/calculator/calculator";
 import type { GeoPoint } from "@/components/calculator/location-field";
 
 const LocationMap = dynamic(
@@ -23,10 +25,12 @@ const LocationMap = dynamic(
 export function StepSummary({
   origin,
   destination,
+  waypoints,
   distanceKm,
   isRoundTrip,
   consumptionL100,
-  passengerNames,
+  passengers,
+  stopLabels,
   routePolyline,
   result,
   ticketLoading,
@@ -35,10 +39,12 @@ export function StepSummary({
 }: {
   origin: GeoPoint | null;
   destination: GeoPoint | null;
+  waypoints: (GeoPoint | null)[];
   distanceKm: number;
   isRoundTrip: boolean;
   consumptionL100: number;
-  passengerNames: string[];
+  passengers: Passenger[];
+  stopLabels: string[];
   routePolyline: [number, number][];
   result: CalculatorResult;
   ticketLoading: boolean;
@@ -72,21 +78,32 @@ export function StepSummary({
         {/* Tarjeta de costes principales */}
         <Card className="border-border/60 bg-card/80">
           <CardContent className="space-y-3 p-4">
-            <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 text-center">
-              <div>
-                <span className="text-xs text-muted-foreground">Coste total</span>
-                <p className="text-2xl font-bold text-foreground">
-                  {result.totalCost.toFixed(2)} €
-                </p>
-              </div>
-              <div className="border-l border-border/60">
-                <span className="text-xs text-muted-foreground">
-                  Por persona ({passengerNames.length})
-                </span>
-                <p className="text-2xl font-bold text-primary">
-                  {result.costPerPassenger.toFixed(2)} €
-                </p>
-              </div>
+            <div className="rounded-lg bg-muted/40 p-3 text-center">
+              <span className="text-xs text-muted-foreground">Coste total</span>
+              <p className="text-2xl font-bold text-foreground">{result.totalCost.toFixed(2)} €</p>
+            </div>
+
+            {/* Desglose por pasajero — cada uno paga según el tramo que recorre */}
+            <div className="space-y-1">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Users size={13} className="text-primary" /> Por pasajero
+              </span>
+              {passengers.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-md bg-muted/20 px-2.5 py-1 text-sm"
+                >
+                  <span className="text-foreground">
+                    {p.name.trim() || (i === 0 ? "Conductor" : `Persona ${i + 1}`)}
+                    {stopLabels.length > 2 && (
+                      <span className="ml-1.5 text-[11px] text-muted-foreground">
+                        {stopLabels[p.pickupStop]} → {stopLabels[p.dropoffStop]}
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-semibold text-foreground">{(result.amounts[i] ?? 0).toFixed(2)} €</span>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-1.5 text-xs">
@@ -121,13 +138,7 @@ export function StepSummary({
 
       {/* Columna derecha: Mini mapa con la ruta trazada */}
       <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border/60 min-h-[220px]">
-        <LocationMap
-          origin={origin}
-          destination={destination}
-          routePolyline={routePolyline}
-          activeField="origin"
-          onPick={() => {}}
-        />
+        <LocationMap stops={buildStops(origin, waypoints, destination)} routePolyline={routePolyline} />
       </div>
     </div>
   );

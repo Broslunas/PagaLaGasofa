@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Layers, Sun, Mountain, Satellite } from "lucide-react";
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { GeoPoint } from "@/components/calculator/location-field";
+import type { MapStop } from "@/lib/stops";
 
 // Centrado en Tenerife (Santa Cruz / La Laguna / Teide)
 const TENERIFE_CENTER: [number, number] = [28.291564, -16.62913];
@@ -68,16 +69,12 @@ function pinIcon(color: string, label: string) {
     iconAnchor: [22, 58],
   });
 }
-const originIcon = pinIcon("#22c55e", "A");
-const destIcon = pinIcon("#ef4444", "B");
 
 function MapController({
-  origin,
-  destination,
+  points,
   routePolyline,
 }: {
-  origin: GeoPoint | null;
-  destination: GeoPoint | null;
+  points: GeoPoint[];
   routePolyline: [number, number][];
 }) {
   const map = useMap();
@@ -90,21 +87,16 @@ function MapController({
   useEffect(() => {
     if (routePolyline.length > 0) {
       map.fitBounds(L.latLngBounds(routePolyline), { padding: [40, 40], maxZoom: 14 });
-    } else if (origin && destination) {
+    } else if (points.length > 1) {
       map.fitBounds(
-        [
-          [origin.lat, origin.lon],
-          [destination.lat, destination.lon],
-        ],
+        points.map((p) => [p.lat, p.lon] as [number, number]),
         { padding: [40, 40], maxZoom: 14 }
       );
-    } else if (origin) {
-      map.flyTo([origin.lat, origin.lon], 13);
-    } else if (destination) {
-      map.flyTo([destination.lat, destination.lon], 13);
+    } else if (points.length === 1) {
+      map.flyTo([points[0].lat, points[0].lon], 13);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin?.lat, origin?.lon, destination?.lat, destination?.lon, routePolyline]);
+  }, [JSON.stringify(points.map((p) => [p.lat, p.lon])), routePolyline]);
 
   return null;
 }
@@ -127,22 +119,23 @@ function ClickHandler({ onPick }: { onPick: (point: GeoPoint) => void }) {
 }
 
 export function LocationMap({
-  origin,
-  destination,
+  stops,
   routePolyline = [],
-  activeField,
+  activeStopIndex = -1,
   onPick,
 }: {
-  origin: GeoPoint | null;
-  destination: GeoPoint | null;
+  stops: MapStop[];
   routePolyline?: [number, number][];
-  activeField: "origin" | "destination";
-  onPick: (field: "origin" | "destination", point: GeoPoint) => void;
+  /** Índice del stop que recibe el próximo clic en el mapa. -1 = mapa de solo lectura. */
+  activeStopIndex?: number;
+  onPick?: (index: number, point: GeoPoint) => void;
 }) {
   const [currentStyle, setCurrentStyle] = useState<MapStyleKey>("streets");
   const [openSelector, setOpenSelector] = useState(false);
 
   const styleConfig = MAP_STYLES[currentStyle];
+  const points = stops.map((s) => s.point).filter((p): p is GeoPoint => p !== null);
+  const interactive = !!onPick && activeStopIndex >= 0;
 
   return (
     <div className="relative h-full w-full">
@@ -199,8 +192,12 @@ export function LocationMap({
           subdomains={styleConfig.subdomains ?? "abc"}
           maxZoom={styleConfig.maxZoom}
         />
-        {origin && <Marker position={[origin.lat, origin.lon]} icon={originIcon} />}
-        {destination && <Marker position={[destination.lat, destination.lon]} icon={destIcon} />}
+        {stops.map(
+          (stop, i) =>
+            stop.point && (
+              <Marker key={i} position={[stop.point.lat, stop.point.lon]} icon={pinIcon(stop.color, stop.label)} />
+            )
+        )}
 
         {/* Línea de ruta naranja adaptada al estilo */}
         {routePolyline.length > 0 && (
@@ -228,8 +225,8 @@ export function LocationMap({
           </>
         )}
 
-        <MapController origin={origin} destination={destination} routePolyline={routePolyline} />
-        <ClickHandler onPick={(point) => onPick(activeField, point)} />
+        <MapController points={points} routePolyline={routePolyline} />
+        {interactive && <ClickHandler onPick={(point) => onPick!(activeStopIndex, point)} />}
       </MapContainer>
     </div>
   );

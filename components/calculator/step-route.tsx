@@ -3,10 +3,11 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { LocationField, type GeoPoint } from "@/components/calculator/location-field";
+import { buildStops } from "@/lib/stops";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Route } from "lucide-react";
+import { Loader2, Plus, Route, X } from "lucide-react";
 
 const LocationMap = dynamic(
   () => import("@/components/calculator/location-map").then((m) => m.LocationMap),
@@ -25,8 +26,10 @@ const numberField = (v: string) => (v === "" ? 0 : Number(v));
 export function StepRoute({
   origin,
   destination,
+  waypoints,
   onOriginChange,
   onDestinationChange,
+  onWaypointsChange,
   distanceKm,
   setDistanceKm,
   routePolyline,
@@ -36,8 +39,10 @@ export function StepRoute({
 }: {
   origin: GeoPoint | null;
   destination: GeoPoint | null;
+  waypoints: (GeoPoint | null)[];
   onOriginChange: (p: GeoPoint | null) => void;
   onDestinationChange: (p: GeoPoint | null) => void;
+  onWaypointsChange: (waypoints: (GeoPoint | null)[]) => void;
   distanceKm: number;
   setDistanceKm: (n: number) => void;
   routePolyline: [number, number][];
@@ -45,31 +50,74 @@ export function StepRoute({
   distanceError: string;
   onRetryDistance: () => void;
 }) {
-  const [activeField, setActiveField] = useState<"origin" | "destination">("origin");
+  // 0 = origen, 1..N = paradas, N+1 = destino
+  const [activeStopIndex, setActiveStopIndex] = useState(0);
 
-  function handlePick(field: "origin" | "destination", point: GeoPoint) {
-    if (field === "origin") onOriginChange(point);
-    else onDestinationChange(point);
+  function handlePick(index: number, point: GeoPoint) {
+    if (index === 0) onOriginChange(point);
+    else if (index === waypoints.length + 1) onDestinationChange(point);
+    else onWaypointsChange(waypoints.map((w, i) => (i === index - 1 ? point : w)));
   }
+
+  function addWaypoint() {
+    onWaypointsChange([...waypoints, null]);
+    setActiveStopIndex(waypoints.length + 1);
+  }
+  function removeWaypoint(i: number) {
+    onWaypointsChange(waypoints.filter((_, idx) => idx !== i));
+    setActiveStopIndex(0);
+  }
+
+  const dest = { index: waypoints.length + 1, label: "Destino" };
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 md:flex-row">
-      <div className="flex shrink-0 flex-col gap-3 md:w-80">
+      <div className="flex shrink-0 flex-col gap-3 overflow-y-auto md:w-80">
         <LocationField
           id="origin"
           label="Origen"
           value={origin}
           onChange={onOriginChange}
-          onFocus={() => setActiveField("origin")}
-          active={activeField === "origin"}
+          onFocus={() => setActiveStopIndex(0)}
+          active={activeStopIndex === 0}
         />
+
+        {waypoints.map((point, i) => (
+          <div key={i} className="flex items-end gap-1.5">
+            <div className="flex-1">
+              <LocationField
+                id={`waypoint-${i}`}
+                label={`Parada ${i + 1}`}
+                value={point}
+                onChange={(p) => onWaypointsChange(waypoints.map((w, idx) => (idx === i ? p : w)))}
+                onFocus={() => setActiveStopIndex(i + 1)}
+                active={activeStopIndex === i + 1}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              title="Quitar parada"
+              onClick={() => removeWaypoint(i)}
+            >
+              <X />
+            </Button>
+          </div>
+        ))}
+
+        <Button type="button" variant="outline" size="sm" onClick={addWaypoint}>
+          <Plus />
+          Añadir parada
+        </Button>
+
         <LocationField
           id="destination"
           label="Destino"
           value={destination}
           onChange={onDestinationChange}
-          onFocus={() => setActiveField("destination")}
-          active={activeField === "destination"}
+          onFocus={() => setActiveStopIndex(dest.index)}
+          active={activeStopIndex === dest.index}
         />
 
         <div className="flex flex-col gap-1.5">
@@ -80,6 +128,8 @@ export function StepRoute({
               type="number"
               min={0}
               value={distanceKm}
+              disabled={waypoints.length > 0}
+              title={waypoints.length > 0 ? "Con paradas, la distancia se calcula automáticamente" : undefined}
               onChange={(e) => setDistanceKm(numberField(e.target.value))}
             />
             <Button
@@ -106,10 +156,9 @@ export function StepRoute({
 
       <div className="min-h-40 flex-1 overflow-hidden rounded-lg border">
         <LocationMap
-          origin={origin}
-          destination={destination}
+          stops={buildStops(origin, waypoints, destination)}
           routePolyline={routePolyline}
-          activeField={activeField}
+          activeStopIndex={activeStopIndex}
           onPick={handlePick}
         />
       </div>
