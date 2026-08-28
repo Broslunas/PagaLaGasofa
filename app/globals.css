@@ -159,6 +159,12 @@
   }
 }
 
+@keyframes wheel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes car-bounce {
   0%,
   100% {

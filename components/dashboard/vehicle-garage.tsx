@@ -50,13 +50,15 @@ export function VehicleGarage({ initialVehicles }: { initialVehicles: Vehicle[] 
     }
   }
 
-  async function updateConsumption(id: string, value: number) {
-    if (value <= 0) return;
-    setVehicles((vs) => vs.map((v) => (v.id === id ? { ...v, avgConsumption: value } : v)));
+  async function updateField(id: string, field: "brand" | "model" | "fuelType" | "year" | "avgConsumption", value: string | number) {
+    if ((field === "avgConsumption" && (value as number) <= 0) || ((field === "brand" || field === "model" || field === "fuelType") && !String(value).trim())) {
+      return;
+    }
+    setVehicles((vs) => vs.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
     await fetch(`/api/vehicles/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ avgConsumption: value }),
+      body: JSON.stringify({ [field]: value }),
     });
   }
 
@@ -70,7 +72,10 @@ export function VehicleGarage({ initialVehicles }: { initialVehicles: Vehicle[] 
   }
 
   async function removeVehicle(id: string) {
-    const wasDefault = vehicles.find((v) => v.id === id)?.isDefault;
+    const vehicle = vehicles.find((v) => v.id === id);
+    if (!vehicle) return;
+    if (!window.confirm(`¿Eliminar ${vehicle.brand} ${vehicle.model}? Esta acción no se puede deshacer.`)) return;
+    const wasDefault = vehicle.isDefault;
     const rest = vehicles.filter((v) => v.id !== id);
     // si borramos el default, el servidor promociona el más reciente que quede
     if (wasDefault && rest.length > 0) rest[0] = { ...rest[0], isDefault: true };
@@ -87,25 +92,52 @@ export function VehicleGarage({ initialVehicles }: { initialVehicles: Vehicle[] 
       )}
 
       {vehicles.map((v) => (
-        <div key={v.id} className="flex items-center gap-2 rounded-lg border p-2">
-          <button type="button" onClick={() => setDefault(v.id)} title="Marcar como por defecto">
-            <Star className={v.isDefault ? "fill-primary text-primary" : "text-muted-foreground"} size={18} />
-          </button>
-          <span className="flex-1 text-sm">
-            {v.brand} {v.model} ({v.year}) — {v.fuelType}
-          </span>
-          <Input
-            type="number"
-            min={0}
-            step={0.1}
-            className="w-20"
-            value={v.avgConsumption}
-            onChange={(e) => updateConsumption(v.id, numberField(e.target.value))}
-          />
-          <span className="text-xs text-muted-foreground">L/100km</span>
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeVehicle(v.id)}>
-            <Trash2 />
-          </Button>
+        <div key={v.id} className="flex flex-col gap-2 rounded-lg border p-2">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setDefault(v.id)} title="Marcar como por defecto">
+              <Star className={v.isDefault ? "fill-primary text-primary" : "text-muted-foreground"} size={18} />
+            </button>
+            <Input
+              className="flex-1"
+              value={v.brand}
+              onChange={(e) => updateField(v.id, "brand", e.target.value)}
+              aria-label="Marca"
+            />
+            <Input
+              className="flex-1"
+              value={v.model}
+              onChange={(e) => updateField(v.id, "model", e.target.value)}
+              aria-label="Modelo"
+            />
+            <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeVehicle(v.id)}>
+              <Trash2 />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 pl-6">
+            <Input
+              type="number"
+              className="w-20"
+              value={v.year}
+              onChange={(e) => updateField(v.id, "year", numberField(e.target.value))}
+              aria-label="Año"
+            />
+            <Input
+              className="w-28"
+              value={v.fuelType}
+              onChange={(e) => updateField(v.id, "fuelType", e.target.value)}
+              aria-label="Combustible"
+            />
+            <Input
+              type="number"
+              min={0}
+              step={0.1}
+              className="w-20"
+              value={v.avgConsumption}
+              onChange={(e) => updateField(v.id, "avgConsumption", numberField(e.target.value))}
+              aria-label="Consumo medio"
+            />
+            <span className="text-xs text-muted-foreground">L/100km</span>
+          </div>
         </div>
       ))}
 

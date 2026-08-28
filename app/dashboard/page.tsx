@@ -1,30 +1,50 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { VehicleGarage } from "@/components/dashboard/vehicle-garage";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TripList } from "@/components/dashboard/trip-list";
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/");
+  const userId = session!.user!.id;
 
-  const [vehicles, trips] = await Promise.all([
-    prisma.vehicle.findMany({ where: { userId: session.user.id }, orderBy: { createdAt: "desc" } }),
-    prisma.trip.findMany({ where: { userId: session.user.id }, orderBy: { createdAt: "desc" } }),
+  const [vehicleCount, tripCount, totalCost, recentTrips] = await Promise.all([
+    prisma.vehicle.count({ where: { userId } }),
+    prisma.trip.count({ where: { userId } }),
+    prisma.trip.aggregate({ where: { userId }, _sum: { totalCost: true } }),
+    prisma.trip.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
 
+  const stats = [
+    { label: "Vehículos", value: vehicleCount },
+    { label: "Viajes", value: tripCount },
+    { label: "Gasto total", value: `${(totalCost._sum.totalCost ?? 0).toFixed(2)} €` },
+  ];
+
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 px-4 py-12">
-      <div className="flex w-full max-w-md flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Mi panel</h1>
+    <>
+      <h1 className="text-2xl font-semibold">Resumen</h1>
 
-        <VehicleGarage initialVehicles={vehicles} />
-
-        <div className="flex flex-col gap-3">
-          <h2 className="font-heading text-base font-medium">Mis viajes</h2>
-          <TripList trips={trips} />
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {stats.map((s) => (
+          <Card key={s.label} size="sm">
+            <CardHeader>
+              <CardTitle className="text-2xl">{s.value}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">{s.label}</CardContent>
+          </Card>
+        ))}
       </div>
-    </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-heading text-base font-medium">Últimos viajes</h2>
+          <Link href="/dashboard/trips" className="text-sm text-muted-foreground hover:underline">
+            Ver todos
+          </Link>
+        </div>
+        <TripList trips={recentTrips} />
+      </div>
+    </>
   );
 }

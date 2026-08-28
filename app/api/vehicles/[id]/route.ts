@@ -30,6 +30,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const data: Record<string, unknown> = {};
   if (typeof body.avgConsumption === "number" && body.avgConsumption > 0) data.avgConsumption = body.avgConsumption;
   if (typeof body.isDefault === "boolean") data.isDefault = body.isDefault;
+  if (typeof body.brand === "string" && body.brand.trim()) data.brand = body.brand.trim();
+  if (typeof body.model === "string" && body.model.trim()) data.model = body.model.trim();
+  if (typeof body.year === "number") data.year = body.year;
+  if (typeof body.fuelType === "string" && body.fuelType.trim()) data.fuelType = body.fuelType.trim();
 
   const updated = await prisma.vehicle.update({ where: { id }, data });
   return Response.json(updated);

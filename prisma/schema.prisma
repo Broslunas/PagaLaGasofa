@@ -108,6 +108,10 @@ model Trip {
 
   origin      String
   destination String
+  // Etiqueta opcional puesta por el usuario para identificar el viaje en el
+  // dashboard (p.ej. "Viaje a la playa"). Nullable: tickets antiguos no la
+  // tienen — la UI hace fallback a "origin → destination".
+  title       String?
   originLat   Float?
   originLon   Float?
   destLat     Float?

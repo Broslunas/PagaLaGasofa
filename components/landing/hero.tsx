@@ -63,7 +63,9 @@ export function Hero() {
             Cómo funciona
           </Button>
         </div>
+      </div>
 
+      <div className="relative z-10 w-full px-4">
         <RoadScene />
       </div>
     </section>

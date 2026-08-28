@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   // geometries=geojson devuelve las coordenadas de la ruta por carretera [lon, lat]
   const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
   const res = await fetch(url);
-  if (!res.ok) return Response.json({ error: "OSRM no respondió" }, { status: 502 });
+  if (!res.ok) return Response.json({ error: "No se ha podido calcular la distancia en coche" }, { status: 502 });
 
   const data = await res.json();
   const route = data?.routes?.[0];
