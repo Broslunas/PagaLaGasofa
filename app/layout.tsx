@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Header } from "@/components/layout/header";
 import { ConditionalFooter } from "@/components/layout/conditional-footer";
+import { RegisterSW } from "@/components/layout/register-sw";
+import { InstallPrompt } from "@/components/layout/install-prompt";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,6 +37,18 @@ export const metadata: Metadata = {
     locale: "es_ES",
     type: "website",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PagaLaGasofa",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -47,9 +61,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-dvh flex-col">
         <ThemeProvider>
           <SessionProvider>
+            <RegisterSW />
             <Header />
             {children}
             <ConditionalFooter />
+            <InstallPrompt />
           </SessionProvider>
         </ThemeProvider>
       </body>

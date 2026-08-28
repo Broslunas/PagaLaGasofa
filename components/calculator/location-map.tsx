@@ -58,17 +58,18 @@ export const MAP_STYLES: Record<
   },
 };
 
-function pinIcon(color: string) {
-  const svg = `<svg width="26" height="34" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg"><path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21s13-11.5 13-21C26 5.8 20.2 0 13 0z" fill="${color}"/><circle cx="13" cy="13" r="5" fill="white"/></svg>`;
+function pinIcon(color: string, label: string) {
+  const svg = `<svg width="44" height="58" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg"><path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21s13-11.5 13-21C26 5.8 20.2 0 13 0z" fill="${color}" stroke="white" stroke-width="1.5"/><circle cx="13" cy="12.5" r="8" fill="white"/><text x="13" y="16.5" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="${color}">${label}</text></svg>`;
+  const html = `<div style="position:relative;width:44px;height:58px;"><span class="map-pin-pulse" style="position:absolute;left:22px;top:21px;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:9999px;background:${color};"></span>${svg}</div>`;
   return L.divIcon({
-    html: svg,
+    html,
     className: "",
-    iconSize: [26, 34],
-    iconAnchor: [13, 34],
+    iconSize: [44, 58],
+    iconAnchor: [22, 58],
   });
 }
-const originIcon = pinIcon("#22c55e");
-const destIcon = pinIcon("#ef4444");
+const originIcon = pinIcon("#22c55e", "A");
+const destIcon = pinIcon("#ef4444", "B");
 
 function MapController({
   origin,
