@@ -17,7 +17,17 @@ export function Footer() {
             Cómo funciona
           </Link>
         </nav>
-        <p>© {new Date().getFullYear()} PagaLaGasofa · pagalagasofa.broslunas.com</p>
+        <p>
+          © {new Date().getFullYear()} PagaLaGasofa · Creado por{" "}
+          <a
+            href="https://broslunas.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:underline"
+          >
+            Broslunas
+          </a>
+        </p>
       </div>
     </footer>
   );

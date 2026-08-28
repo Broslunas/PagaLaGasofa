@@ -13,15 +13,18 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #ea580c, #c2410c)",
+          background: "linear-gradient(135deg, #fb923c, #ea580c)",
           borderRadius: 8,
-          color: "white",
-          fontSize: 18,
-          fontWeight: 900,
-          fontFamily: "system-ui, sans-serif",
         }}
       >
-        ⛽
+        <svg width="22" height="22" viewBox="0 0 32 32">
+          <path
+            d="M16 6 C16 6, 22.5 14, 22.5 19 C22.5 22.6, 19.6 25.5, 16 25.5 C12.4 25.5, 9.5 22.6, 9.5 19 C9.5 14, 16 6, 16 6 Z"
+            fill="#ffffff"
+          />
+          <circle cx="13.6" cy="20" r="1.7" fill="#ea580c" />
+          <circle cx="18.4" cy="20" r="1.7" fill="#c2410c" />
+        </svg>
       </div>
     ),
     size
