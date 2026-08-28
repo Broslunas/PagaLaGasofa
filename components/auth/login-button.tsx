@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 export function LoginButton() {
@@ -9,12 +10,17 @@ export function LoginButton() {
 
   if (session?.user) {
     return (
-      <button
-        onClick={() => signOut()}
-        className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-      >
-        Cerrar sesión ({session.user.name})
-      </button>
+      <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="text-sm font-medium hover:underline">
+          Mi panel
+        </Link>
+        <button
+          onClick={() => signOut()}
+          className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+        >
+          Cerrar sesión ({session.user.name})
+        </button>
+      </div>
     );
   }
 

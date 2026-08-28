@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { calculateTrip } from "@/lib/calculator";
 import { LocationField, type GeoPoint } from "@/components/calculator/location-field";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,35 @@ export function Calculator() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [ticketError, setTicketError] = useState("");
   const router = useRouter();
+
+  const { data: authSession } = useSession();
+  const [myVehicles, setMyVehicles] = useState<
+    { id: string; brand: string; model: string; year: number; avgConsumption: number; isDefault: boolean }[]
+  >([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+
+  useEffect(() => {
+    if (!authSession?.user) {
+      setMyVehicles([]);
+      return;
+    }
+    fetch("/api/vehicles")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((vehicles) => {
+        setMyVehicles(vehicles);
+        const def = vehicles.find((v: { isDefault: boolean }) => v.isDefault);
+        if (def) {
+          setSelectedVehicleId(def.id);
+          setConsumptionL100(def.avgConsumption);
+        }
+      });
+  }, [authSession?.user]);
+
+  function selectVehicle(id: string) {
+    setSelectedVehicleId(id);
+    const vehicle = myVehicles.find((v) => v.id === id);
+    if (vehicle) setConsumptionL100(vehicle.avgConsumption);
+  }
 
   function addPassenger() {
     setPassengerNames((names) => [...names, ""]);
@@ -158,6 +188,24 @@ export function Calculator() {
             <Checkbox checked={isRoundTrip} onCheckedChange={(v) => setIsRoundTrip(v === true)} />
             Ida y vuelta
           </label>
+
+          {myVehicles.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="myVehicle">Mi vehículo</Label>
+              <select
+                id="myVehicle"
+                className="h-9 rounded-md border bg-transparent px-3 text-sm"
+                value={selectedVehicleId}
+                onChange={(e) => selectVehicle(e.target.value)}
+              >
+                {myVehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.brand} {v.model} ({v.year})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5 rounded-lg border p-3">
             <span className="text-sm font-medium">Estimar consumo con IA (opcional)</span>
