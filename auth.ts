@@ -20,6 +20,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: "/", // no dedicated /login page yet — Google button lives on the homepage
+    signIn: "/login",
   },
 });

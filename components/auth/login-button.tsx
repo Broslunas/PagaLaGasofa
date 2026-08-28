@@ -111,14 +111,16 @@ export function LoginButton({ stacked = false }: { stacked?: boolean }) {
   }
 
   return (
-    <Button
-      type="button"
-      size="sm"
-      className={stacked ? "w-full gap-2" : "gap-2"}
-      onClick={() => signIn("google")}
+    <Link
+      href="/login"
+      className={
+        stacked
+          ? "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-[min(var(--radius-md),12px)] bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/80"
+          : "inline-flex h-8 items-center justify-center gap-1.5 rounded-[min(var(--radius-md),12px)] bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/80"
+      }
     >
-      <LogIn className="h-4 w-4" />
-      Iniciar sesión
-    </Button>
+      <LogIn className="h-3.5 w-3.5 shrink-0" />
+      <span>Iniciar sesión</span>
+    </Link>
   );
 }

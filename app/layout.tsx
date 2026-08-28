@@ -83,7 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SessionProvider>
             <RegisterSW />
             <Header />
-            <main className="flex-1">{children}</main>
+            <div className="flex flex-1 flex-col min-h-0">{children}</div>
             <ConditionalFooter />
             <InstallPrompt />
           </SessionProvider>
