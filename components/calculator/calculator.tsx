@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { calculateTrip } from "@/lib/calculator";
 import { LocationField, type GeoPoint } from "@/components/calculator/location-field";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Route } from "lucide-react";
+import { Loader2, Route, Sparkles, Plus, X, Receipt } from "lucide-react";
 
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
@@ -24,7 +25,72 @@ export function Calculator() {
   const [fuelPricePerLiter, setFuelPricePerLiter] = useState(1.5);
   const [tollsCost, setTollsCost] = useState(0);
   const [extraCosts, setExtraCosts] = useState(0);
-  const [passengersCount, setPassengersCount] = useState(1);
+  const [passengerNames, setPassengerNames] = useState<string[]>([""]);
+
+  const [vehicleBrand, setVehicleBrand] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [vehicleYear, setVehicleYear] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketError, setTicketError] = useState("");
+  const router = useRouter();
+
+  function addPassenger() {
+    setPassengerNames((names) => [...names, ""]);
+  }
+  function removePassenger(i: number) {
+    setPassengerNames((names) => names.filter((_, idx) => idx !== i));
+  }
+  function renamePassenger(i: number, name: string) {
+    setPassengerNames((names) => names.map((n, idx) => (idx === i ? name : n)));
+  }
+
+  async function generateTicket() {
+    setTicketLoading(true);
+    setTicketError("");
+    try {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          origin: origin?.label ?? "",
+          destination: destination?.label ?? "",
+          distanceKm,
+          isRoundTrip,
+          consumptionL100,
+          fuelPricePerLiter,
+          tollsCost,
+          extraCosts,
+          passengerNames,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al generar el ticket");
+      router.push(`/t/${data.shareId}`);
+    } catch (e) {
+      setTicketError(e instanceof Error ? e.message : "Error al generar el ticket");
+      setTicketLoading(false);
+    }
+  }
+
+  async function estimateConsumption() {
+    if (!vehicleBrand || !vehicleModel) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const url = `/api/vehicle-consumption?brand=${encodeURIComponent(vehicleBrand)}&model=${encodeURIComponent(vehicleModel)}&year=${encodeURIComponent(vehicleYear)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al estimar el consumo");
+      setConsumptionL100(data.consumptionL100);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Error al estimar el consumo");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   async function fetchDistance() {
     if (!origin || !destination) return;
@@ -50,7 +116,7 @@ export function Calculator() {
     fuelPricePerLiter,
     tollsCost,
     extraCosts,
-    passengersCount,
+    passengersCount: passengerNames.length,
   });
 
   return (
@@ -92,6 +158,40 @@ export function Calculator() {
             <Checkbox checked={isRoundTrip} onCheckedChange={(v) => setIsRoundTrip(v === true)} />
             Ida y vuelta
           </label>
+
+          <div className="flex flex-col gap-1.5 rounded-lg border p-3">
+            <span className="text-sm font-medium">Estimar consumo con IA (opcional)</span>
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                placeholder="Marca"
+                value={vehicleBrand}
+                onChange={(e) => setVehicleBrand(e.target.value)}
+              />
+              <Input
+                placeholder="Modelo"
+                value={vehicleModel}
+                onChange={(e) => setVehicleModel(e.target.value)}
+              />
+              <Input
+                placeholder="Año"
+                value={vehicleYear}
+                onChange={(e) => setVehicleYear(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!vehicleBrand || !vehicleModel || aiLoading}
+                onClick={estimateConsumption}
+              >
+                {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                Estimar consumo
+              </Button>
+              {aiError && <span className="text-xs text-destructive">{aiError}</span>}
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
@@ -141,14 +241,25 @@ export function Calculator() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="passengers">Nº de personas (incluye conductor)</Label>
-            <Input
-              id="passengers"
-              type="number"
-              min={1}
-              value={passengersCount}
-              onChange={(e) => setPassengersCount(numberField(e.target.value))}
-            />
+            <Label>Pasajeros</Label>
+            {passengerNames.map((name, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input
+                  placeholder={i === 0 ? "Conductor" : `Persona ${i + 1}`}
+                  value={name}
+                  onChange={(e) => renamePassenger(i, e.target.value)}
+                />
+                {i > 0 && (
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => removePassenger(i)}>
+                    <X />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addPassenger}>
+              <Plus />
+              Añadir pasajero
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -161,6 +272,15 @@ export function Calculator() {
           <Row label="Coste total" value={result.totalCost} big />
           <Row label="Cada persona paga" value={result.costPerPassenger} />
           <Row label="El conductor cobra" value={result.driverReceives} />
+          <Button
+            type="button"
+            disabled={distanceKm <= 0 || passengerNames.length < 1 || ticketLoading}
+            onClick={generateTicket}
+          >
+            {ticketLoading ? <Loader2 className="animate-spin" /> : <Receipt />}
+            Generar ticket
+          </Button>
+          {ticketError && <span className="text-xs text-destructive">{ticketError}</span>}
         </CardContent>
       </Card>
     </div>

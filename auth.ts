@@ -12,6 +12,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: { strategy: "database" },
+  callbacks: {
+    // Auth.js v5's default session callback drops user.id — solo copia name/email/image.
+    session({ session, user }) {
+      session.user.id = user.id;
+      return session;
+    },
+  },
   pages: {
     signIn: "/", // no dedicated /login page yet — Google button lives on the homepage
   },
