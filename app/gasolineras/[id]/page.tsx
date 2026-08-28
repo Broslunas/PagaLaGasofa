@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { GasStationDetail } from "@/app/api/gasolineras/[id]/route";
 import { PriceHistoryChart, type HistoryPoint } from "@/components/gasolineras/price-history-chart";
+import { StationScheduleCard } from "@/components/gasolineras/station-schedule-card";
 
 // Leaflet dynamic import without SSR
 const StationMap = dynamic(
@@ -257,7 +258,7 @@ export default function GasolineraDetailPage({
               )}
             </div>
 
-            {/* Station Details & Schedule */}
+            {/* Station Details */}
             <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
               <div className="flex items-center gap-2 border-b border-border/50 pb-4">
                 <Info className="h-5 w-5 text-primary" />
@@ -265,12 +266,6 @@ export default function GasolineraDetailPage({
               </div>
 
               <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 text-xs">
-                <div>
-                  <dt className="text-muted-foreground font-medium">Horario de apertura</dt>
-                  <dd className="mt-0.5 text-foreground font-semibold">
-                    {station.schedule || "No especificado"}
-                  </dd>
-                </div>
                 <div>
                   <dt className="text-muted-foreground font-medium">Tipo de Venta</dt>
                   <dd className="mt-0.5 text-foreground font-semibold">
@@ -299,10 +294,10 @@ export default function GasolineraDetailPage({
                     {station.postalCode}
                   </dd>
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <dt className="text-muted-foreground font-medium">Municipio / Localidad</dt>
                   <dd className="mt-0.5 text-foreground font-semibold">
-                    {station.municipality} ({station.city})
+                    {station.municipality} ({station.city}) - {station.province}
                   </dd>
                 </div>
               </dl>
@@ -319,9 +314,9 @@ export default function GasolineraDetailPage({
             />
           </div>
 
-          {/* Right Column: Interactive Map (5 cols) */}
-          <div className="flex flex-col gap-4 lg:col-span-5">
-            <div className="flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-sm h-[400px] lg:h-[500px]">
+          {/* Right Column: Interactive Map & Schedule (5 cols) */}
+          <div className="flex flex-col gap-6 lg:col-span-5">
+            <div className="flex flex-col rounded-2xl border border-border/70 bg-card p-4 shadow-sm h-[320px] lg:h-[360px]">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
@@ -346,6 +341,9 @@ export default function GasolineraDetailPage({
                 )}
               </div>
             </div>
+
+            {/* Schedule Section below Map */}
+            <StationScheduleCard scheduleRaw={station.schedule} />
           </div>
         </div>
       </div>
