@@ -1,14 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Fuel, Save } from "lucide-react";
 
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
 type Vehicle = { id: string; brand: string; model: string; year: number; avgConsumption: number; isDefault: boolean };
+type Favorite = { stationId: string; name: string; brand: string; provinceId: string | null };
+
+// Mismas keys que devuelve /api/gasolineras (GasStation.prices).
+const FUEL_OPTIONS: { key: string; label: string }[] = [
+  { key: "gasolina95", label: "Gasolina 95" },
+  { key: "gasolina98", label: "Gasolina 98" },
+  { key: "diesel", label: "Diésel" },
+  { key: "dieselPremium", label: "Diésel Premium" },
+  { key: "glp", label: "GLP" },
+];
+
+const selectClass =
+  "h-8 w-full min-w-0 cursor-pointer rounded-lg border border-input bg-card px-2.5 py-1 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-card";
 
 export function StepVehicle({
   isRoundTrip,
@@ -33,6 +47,14 @@ export function StepVehicle({
   setTollsCost,
   extraCosts,
   setExtraCosts,
+  myFavorites,
+  applyFavoritePrice,
+  favPriceLoading,
+  favPriceError,
+  isLoggedIn,
+  saveVehicle,
+  savingVehicle,
+  saveVehicleError,
 }: {
   isRoundTrip: boolean;
   setIsRoundTrip: (v: boolean) => void;
@@ -56,7 +78,18 @@ export function StepVehicle({
   setTollsCost: (n: number) => void;
   extraCosts: number;
   setExtraCosts: (n: number) => void;
+  myFavorites: Favorite[];
+  applyFavoritePrice: (stationId: string, provinceId: string | null, fuelKey: string) => void;
+  favPriceLoading: boolean;
+  favPriceError: string;
+  isLoggedIn: boolean;
+  saveVehicle: () => void;
+  savingVehicle: boolean;
+  saveVehicleError: string;
 }) {
+  const [favStationId, setFavStationId] = useState("");
+  const [favFuelKey, setFavFuelKey] = useState(FUEL_OPTIONS[0].key);
+
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col gap-4 overflow-y-auto">
       <label className="flex items-center gap-2 text-sm">
@@ -105,7 +138,58 @@ export function StepVehicle({
           </Button>
           {aiError && <span className="text-xs text-destructive">{aiError}</span>}
         </div>
+        {isLoggedIn && vehicleBrand && vehicleModel && consumptionL100 > 0 && (
+          <div className="flex items-center gap-2 border-t border-primary/20 pt-2">
+            <Button type="button" variant="outline" size="sm" disabled={savingVehicle} onClick={saveVehicle}>
+              {savingVehicle ? <Loader2 className="animate-spin" /> : <Save />}
+              Guardar en mi garage
+            </Button>
+            {saveVehicleError && <span className="text-xs text-destructive">{saveVehicleError}</span>}
+          </div>
+        )}
       </div>
+
+      {myFavorites.length > 0 && (
+        <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3">
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <Fuel size={14} className="text-primary" />
+            Precio desde gasolinera favorita
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <select className={selectClass} value={favStationId} onChange={(e) => setFavStationId(e.target.value)}>
+              <option value="">Elige gasolinera</option>
+              {myFavorites.map((f) => (
+                <option key={f.stationId} value={f.stationId}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            <select className={selectClass} value={favFuelKey} onChange={(e) => setFavFuelKey(e.target.value)}>
+              {FUEL_OPTIONS.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!favStationId || favPriceLoading}
+              onClick={() => {
+                const station = myFavorites.find((f) => f.stationId === favStationId);
+                if (station) applyFavoritePrice(station.stationId, station.provinceId, favFuelKey);
+              }}
+            >
+              {favPriceLoading ? <Loader2 className="animate-spin" /> : <Fuel />}
+              Usar precio actual
+            </Button>
+            {favPriceError && <span className="text-xs text-destructive">{favPriceError}</span>}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">

@@ -4,8 +4,12 @@
 // colgada sin responder nunca con esta key, confirmado con curl directo; generateContent
 // respondió 200 al instante con la misma key).
 // Requiere GEMINI_API_KEY; sin ella, degrada con 501 y el usuario mete el consumo a mano.
+// Cachea por marca+modelo+año en VehicleConsumptionCache — mismo vehículo no
+// vuelve a llamar a Gemini.
 // generateContent usa un Schema estilo proto (no JSON Schema): tipos en mayúsculas,
 // "nullable" en vez de type: [x, "null"] — esto último da 400 "Proto field is not repeating".
+import { prisma } from "@/lib/prisma";
+
 const SCHEMA = {
   type: "OBJECT",
   properties: {
@@ -37,6 +41,12 @@ export async function GET(request: Request) {
     return Response.json({ error: "Faltan brand/model" }, { status: 400 });
   }
 
+  const cacheKey = `${brand.toLowerCase()}|${model.toLowerCase()}|${year ?? ""}`;
+  const cached = await prisma.vehicleConsumptionCache.findUnique({ where: { key: cacheKey } });
+  if (cached) {
+    return Response.json({ consumptionL100: cached.consumptionL100 });
+  }
+
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
     {
@@ -66,6 +76,12 @@ export async function GET(request: Request) {
   if (typeof value !== "number") {
     return Response.json({ error: "No se pudo estimar el consumo de ese vehículo" }, { status: 404 });
   }
+
+  await prisma.vehicleConsumptionCache.upsert({
+    where: { key: cacheKey },
+    create: { key: cacheKey, consumptionL100: value },
+    update: { consumptionL100: value },
+  });
 
   return Response.json({ consumptionL100: value });
 }

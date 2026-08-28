@@ -69,10 +69,18 @@ export function Calculator() {
     { id: string; brand: string; model: string; year: number; avgConsumption: number; isDefault: boolean }[]
   >([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [myFavorites, setMyFavorites] = useState<
+    { stationId: string; name: string; brand: string; provinceId: string | null }[]
+  >([]);
+  const [favPriceLoading, setFavPriceLoading] = useState(false);
+  const [favPriceError, setFavPriceError] = useState("");
+  const [savingVehicle, setSavingVehicle] = useState(false);
+  const [saveVehicleError, setSaveVehicleError] = useState("");
 
   useEffect(() => {
     if (!authSession?.user) {
       setMyVehicles([]);
+      setMyFavorites([]);
       return;
     }
     fetch("/api/vehicles")
@@ -85,7 +93,56 @@ export function Calculator() {
           setConsumptionL100(def.avgConsumption);
         }
       });
+    fetch("/api/favorites")
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setMyFavorites);
   }, [authSession?.user]);
+
+  async function applyFavoritePrice(stationId: string, provinceId: string | null, fuelKey: string) {
+    setFavPriceLoading(true);
+    setFavPriceError("");
+    try {
+      const url = provinceId
+        ? `/api/gasolineras/${stationId}?provincia=${provinceId}`
+        : `/api/gasolineras/${stationId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al consultar el precio");
+      const price = data.station?.prices?.[fuelKey];
+      if (typeof price !== "number") throw new Error("Esa gasolinera no declara ese combustible");
+      setFuelPricePerLiter(price);
+    } catch (e) {
+      setFavPriceError(e instanceof Error ? e.message : "Error al consultar el precio");
+    } finally {
+      setFavPriceLoading(false);
+    }
+  }
+
+  async function saveVehicle() {
+    setSavingVehicle(true);
+    setSaveVehicleError("");
+    try {
+      const res = await fetch("/api/vehicles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: vehicleBrand,
+          model: vehicleModel,
+          year: Number(vehicleYear) || new Date().getFullYear(),
+          fuelType: "Gasolina",
+          avgConsumption: consumptionL100,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al guardar el vehículo");
+      setMyVehicles((vs) => [data, ...vs]);
+      setSelectedVehicleId(data.id);
+    } catch (e) {
+      setSaveVehicleError(e instanceof Error ? e.message : "Error al guardar el vehículo");
+    } finally {
+      setSavingVehicle(false);
+    }
+  }
 
   // Si el número de paradas cambia, reencuadra los índices de subida/bajada
   // de cada pasajero para que sigan siendo válidos.
@@ -303,6 +360,14 @@ export function Calculator() {
             setTollsCost={setTollsCost}
             extraCosts={extraCosts}
             setExtraCosts={setExtraCosts}
+            myFavorites={myFavorites}
+            applyFavoritePrice={applyFavoritePrice}
+            favPriceLoading={favPriceLoading}
+            favPriceError={favPriceError}
+            isLoggedIn={!!authSession?.user}
+            saveVehicle={saveVehicle}
+            savingVehicle={savingVehicle}
+            saveVehicleError={saveVehicleError}
           />
         )}
         {step === 2 && (

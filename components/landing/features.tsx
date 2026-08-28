@@ -4,7 +4,7 @@ import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { MapPin, Sparkles, Users, Share2 } from "lucide-react";
+import { MapPin, Sparkles, Users, Share2, Fuel, Car } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -29,6 +29,16 @@ const FEATURES = [
     icon: Share2,
     title: "Ticket compartible",
     description: "Link público al momento, sin cuenta ni fricción.",
+  },
+  {
+    icon: Fuel,
+    title: "Gasolineras al mejor precio",
+    description: "Precios oficiales en tiempo real, guarda tus favoritas.",
+  },
+  {
+    icon: Car,
+    title: "Tu garaje y tus viajes",
+    description: "Vehículos guardados, histórico de viajes y gasto.",
   },
 ];
 

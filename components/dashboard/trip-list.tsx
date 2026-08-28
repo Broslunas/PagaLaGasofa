@@ -28,9 +28,12 @@ interface Trip {
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
+const SAVE_ERROR = "No se pudo guardar el cambio, inténtalo de nuevo";
+
 export function TripList({ trips: initialTrips }: { trips: Trip[] }) {
   const [trips, setTrips] = useState(initialTrips);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   function toggleExpanded(tripId: string) {
     setExpanded((s) => {
@@ -41,71 +44,108 @@ export function TripList({ trips: initialTrips }: { trips: Trip[] }) {
     });
   }
 
-  async function togglePaid(tripId: string, index: number, hasPaid: boolean) {
-    setTrips((ts) =>
-      ts.map((t) =>
-        t.id === tripId ? { ...t, passengers: t.passengers.map((p, i) => (i === index ? { ...p, hasPaid } : p)) } : t
-      )
+  // Aplica el update optimista, guarda una foto previa, y si el fetch falla
+  // (red, sesión caducada, 403...) revierte esa foto y deja un error visible
+  // en vez de quedarse con estado desincronizado en silencio.
+  async function mutate(tripId: string, apply: (ts: Trip[]) => Trip[], request: () => Promise<Response>) {
+    let snapshot: Trip[] = [];
+    setTrips((ts) => {
+      snapshot = ts;
+      return apply(ts);
+    });
+    setErrors((e) => ({ ...e, [tripId]: "" }));
+    try {
+      const res = await request();
+      if (!res.ok) throw new Error();
+    } catch {
+      setTrips(snapshot);
+      setErrors((e) => ({ ...e, [tripId]: SAVE_ERROR }));
+    }
+  }
+
+  function togglePaid(tripId: string, index: number, hasPaid: boolean) {
+    return mutate(
+      tripId,
+      (ts) =>
+        ts.map((t) =>
+          t.id === tripId
+            ? { ...t, passengers: t.passengers.map((p, i) => (i === index ? { ...p, hasPaid } : p)) }
+            : t
+        ),
+      () =>
+        fetch(`/api/trips/${tripId}/passengers/${index}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hasPaid }),
+        })
     );
-    await fetch(`/api/trips/${tripId}/passengers/${index}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hasPaid }),
-    });
   }
 
-  async function updateTitle(tripId: string, title: string) {
-    setTrips((ts) => ts.map((t) => (t.id === tripId ? { ...t, title: title || null } : t)));
-    await fetch(`/api/trips/${tripId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
+  function updateTitle(tripId: string, title: string) {
+    return mutate(
+      tripId,
+      (ts) => ts.map((t) => (t.id === tripId ? { ...t, title: title || null } : t)),
+      () =>
+        fetch(`/api/trips/${tripId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        })
+    );
   }
 
-  async function updateCost(tripId: string, field: "tollsCost" | "extraCosts", value: number) {
+  function updateCost(tripId: string, field: "tollsCost" | "extraCosts", value: number) {
     if (value < 0) return;
-    setTrips((ts) =>
-      ts.map((t) => {
-        if (t.id !== tripId) return t;
-        const diff = value - t[field];
-        return {
-          ...t,
-          [field]: value,
-          totalCost: round2(t.totalCost + diff),
-          passengers: t.passengers.map((p) => ({ ...p, amount: round2(p.amount + diff / t.passengers.length) })),
-        };
-      })
+    return mutate(
+      tripId,
+      (ts) =>
+        ts.map((t) => {
+          if (t.id !== tripId) return t;
+          const diff = value - t[field];
+          return {
+            ...t,
+            [field]: value,
+            totalCost: round2(t.totalCost + diff),
+            passengers: t.passengers.map((p) => ({ ...p, amount: round2(p.amount + diff / t.passengers.length) })),
+          };
+        }),
+      () =>
+        fetch(`/api/trips/${tripId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: value }),
+        })
     );
-    await fetch(`/api/trips/${tripId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: value }),
-    });
   }
 
-  async function updateAmount(tripId: string, index: number, amount: number) {
+  function updateAmount(tripId: string, index: number, amount: number) {
     if (amount < 0) return;
-    setTrips((ts) =>
-      ts.map((t) => {
-        if (t.id !== tripId) return t;
-        const passengers = t.passengers.map((p, i) => (i === index ? { ...p, amount } : p));
-        return { ...t, passengers, totalCost: round2(passengers.reduce((sum, p) => sum + p.amount, 0)) };
-      })
+    return mutate(
+      tripId,
+      (ts) =>
+        ts.map((t) => {
+          if (t.id !== tripId) return t;
+          const passengers = t.passengers.map((p, i) => (i === index ? { ...p, amount } : p));
+          return { ...t, passengers, totalCost: round2(passengers.reduce((sum, p) => sum + p.amount, 0)) };
+        }),
+      () =>
+        fetch(`/api/trips/${tripId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ passengers: [{ index, amount }] }),
+        })
     );
-    await fetch(`/api/trips/${tripId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passengers: [{ index, amount }] }),
-    });
   }
 
-  async function removeTrip(tripId: string) {
+  function removeTrip(tripId: string) {
     const trip = trips.find((t) => t.id === tripId);
     if (!trip) return;
     if (!window.confirm(`¿Eliminar el viaje ${trip.origin} → ${trip.destination}? Esta acción no se puede deshacer.`)) return;
-    setTrips((ts) => ts.filter((t) => t.id !== tripId));
-    await fetch(`/api/trips/${tripId}`, { method: "DELETE" });
+    return mutate(
+      tripId,
+      (ts) => ts.filter((t) => t.id !== tripId),
+      () => fetch(`/api/trips/${tripId}`, { method: "DELETE" })
+    );
   }
 
   if (trips.length === 0) {
@@ -135,6 +175,7 @@ export function TripList({ trips: initialTrips }: { trips: Trip[] }) {
           <Link href={`/t/${trip.shareId}`} className="mb-2 block text-xs text-muted-foreground hover:underline">
             {trip.origin} → {trip.destination}
           </Link>
+          {errors[trip.id] && <p className="mb-2 text-xs text-destructive">{errors[trip.id]}</p>}
 
           {expanded.has(trip.id) && (
             <div className="mb-3 flex items-center gap-3 border-b pb-3 text-sm">

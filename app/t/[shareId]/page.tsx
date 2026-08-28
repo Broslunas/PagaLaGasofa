@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CopyLinkButton } from "@/components/ticket/copy-link-button";
 import { DownloadImageButton } from "@/components/ticket/download-image-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
+import { PassengerPaidToggle } from "@/components/ticket/passenger-paid-toggle";
 import { shortenAddress } from "@/lib/format-address";
-import { ArrowRight, CheckCircle2, CircleDashed, Fuel, Receipt, Route, Users } from "lucide-react";
+import { ArrowRight, Fuel, Receipt, Route, Users } from "lucide-react";
 
 export default async function TicketPage({ params }: { params: Promise<{ shareId: string }> }) {
   const { shareId } = await params;
@@ -131,23 +132,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-foreground">{p.amount.toFixed(2)} €</span>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${
-                            p.hasPaid
-                              ? "bg-green-500/10 text-green-500"
-                              : "bg-amber-500/10 text-amber-500"
-                          }`}
-                        >
-                          {p.hasPaid ? (
-                            <>
-                              <CheckCircle2 size={12} /> Pagado
-                            </>
-                          ) : (
-                            <>
-                              <CircleDashed size={12} /> Pendiente
-                            </>
-                          )}
-                        </span>
+                        <PassengerPaidToggle shareId={shareId} index={i} initialHasPaid={p.hasPaid} />
                       </div>
                     </div>
                   ))}

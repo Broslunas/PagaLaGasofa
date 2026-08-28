@@ -139,6 +139,17 @@ model Trip {
   createdAt DateTime @default(now())
 }
 
+// Cache de estimaciones de consumo IA por vehículo — evita repetir la
+// llamada a Gemini para el mismo brand+model+year que ya se estimó antes.
+// Sin TTL: ponytail, si el consumo estimado envejece mal, añadir expiración
+// por createdAt más adelante.
+model VehicleConsumptionCache {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  key             String   @unique // `${brand}|${model}|${year}` normalizado
+  consumptionL100 Float
+  createdAt       DateTime @default(now())
+}
+
 model FavoriteStation {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   userId       String   @db.ObjectId
