@@ -1,0 +1,116 @@
+// Prisma schema — MongoDB
+// Pinned to prisma@6.19.3 / @prisma/client@6.19.3: Prisma 7's default engine
+// dropped MongoDB support (coming back later); 6.19 is the last release with
+// full Mongo support and the classic "prisma-client-js" generator API.
+// ponytail: when Prisma re-adds Mongo support on 7/8, revisit generator + client import path.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth.js (NextAuth v5) — Prisma Adapter models ----------
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+  vehicles Vehicle[]
+  trips    Trip[]
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- App models ----------
+
+model Vehicle {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  brand          String
+  model          String
+  year           Int
+  fuelType       String
+  avgConsumption Float
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Embedded document (no own collection) for Trip.passengers
+type Passenger {
+  name    String
+  amount  Float
+  hasPaid Boolean @default(false)
+}
+
+model Trip {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  // nullable: anonymous (not-logged-in) users can also generate/share trips
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  origin      String
+  destination String
+  distanceKm  Float
+  isRoundTrip Boolean @default(false)
+
+  consumptionL100   Float
+  fuelPricePerLiter Float
+  tollsCost         Float @default(0)
+  extraCosts        Float @default(0)
+
+  passengersCount  Int
+  totalCost        Float
+  costPerPassenger Float
+  driverReceives   Float
+
+  shareId    String      @unique @default(cuid())
+  passengers Passenger[]
+
+  createdAt DateTime @default(now())
+}
