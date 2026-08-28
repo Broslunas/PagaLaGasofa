@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Plus_Jakarta_Sans, Space_Grotesk, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -63,6 +64,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${bodyFont.variable} ${headingFont.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <Script
+          defer
+          src="https://analytics.broslunas.com/script.js"
+          data-website-id="8d168ceb-6508-4650-be70-f60f7aae96f4"
+          strategy="afterInteractive"
+        />
+        <Script
+          defer
+          src="https://analytics.broslunas.com/recorder.js"
+          data-website-id="8d168ceb-6508-4650-be70-f60f7aae96f4"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className="flex h-dvh flex-col">
         <ThemeProvider>
           <SessionProvider>
