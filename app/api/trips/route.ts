@@ -6,7 +6,22 @@ import { calculateTrip } from "@/lib/calculator";
 // que mande el cliente, solo en los inputs crudos.
 export async function POST(request: Request) {
   const body = await request.json();
-  const { origin, destination, distanceKm, isRoundTrip, consumptionL100, fuelPricePerLiter, tollsCost, extraCosts, passengerNames } = body;
+  const {
+    origin,
+    destination,
+    originLat,
+    originLon,
+    destLat,
+    destLon,
+    geometry,
+    distanceKm,
+    isRoundTrip,
+    consumptionL100,
+    fuelPricePerLiter,
+    tollsCost,
+    extraCosts,
+    passengerNames,
+  } = body;
 
   if (typeof origin !== "string" || !origin.trim() || typeof destination !== "string" || !destination.trim()) {
     return Response.json({ error: "Faltan origen/destino" }, { status: 400 });
@@ -41,6 +56,11 @@ export async function POST(request: Request) {
       userId: session?.user?.id,
       origin,
       destination,
+      originLat: typeof originLat === "number" ? originLat : null,
+      originLon: typeof originLon === "number" ? originLon : null,
+      destLat: typeof destLat === "number" ? destLat : null,
+      destLon: typeof destLon === "number" ? destLon : null,
+      geometry: typeof geometry === "string" ? geometry : null,
       distanceKm,
       isRoundTrip: !!isRoundTrip,
       consumptionL100: Number(consumptionL100) || 0,

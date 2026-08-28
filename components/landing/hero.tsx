@@ -19,7 +19,7 @@ export function Hero() {
         .from("[data-hero-subtitle]", { y: 16, opacity: 0, duration: 0.5 }, "-=0.35")
         .from(
           "[data-hero-cta] > *",
-          { y: 12, opacity: 0, duration: 0.4, stagger: 0.08 },
+          { y: 12, opacity: 0, duration: 0.4, stagger: 0.08, clearProps: "opacity,transform" },
           "-=0.25"
         );
     },
@@ -29,7 +29,7 @@ export function Hero() {
   return (
     <section
       ref={scope}
-      className="relative overflow-hidden px-4 py-24 text-center md:py-32
+      className="relative flex min-h-[85vh] flex-col items-center justify-center overflow-hidden px-4 py-24 text-center md:py-32
         bg-[radial-gradient(ellipse_at_top,color-mix(in_oklch,var(--primary),transparent_85%),transparent_60%)]"
     >
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">

@@ -1,6 +1,6 @@
 // Self-check manual — sin framework. Correr con: node lib/calculator.check.ts
 import assert from "node:assert/strict";
-import { calculateTrip } from "./calculator.ts";
+import { calculateTrip } from "./calculator";
 
 // 100km ida y vuelta = 200km, 6L/100km = 12L, a 1.5€/L = 18€ + 2 peajes = 20€, entre 4 = 5€
 const r = calculateTrip({

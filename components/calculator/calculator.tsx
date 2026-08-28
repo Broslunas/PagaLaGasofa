@@ -4,20 +4,23 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { calculateTrip } from "@/lib/calculator";
-import { LocationField, type GeoPoint } from "@/components/calculator/location-field";
+import { type GeoPoint } from "@/components/calculator/location-field";
+import { StepRoute } from "@/components/calculator/step-route";
+import { StepVehicle } from "@/components/calculator/step-vehicle";
+import { StepPassengers } from "@/components/calculator/step-passengers";
+import { StepSummary } from "@/components/calculator/step-summary";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Route, Sparkles, Plus, X, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const numberField = (v: string) => (v === "" ? 0 : Number(v));
+const STEPS = ["Ruta", "Vehículo y coste", "Pasajeros", "Resumen"] as const;
 
 export function Calculator() {
+  const [step, setStep] = useState(0);
+
   const [origin, setOrigin] = useState<GeoPoint | null>(null);
   const [destination, setDestination] = useState<GeoPoint | null>(null);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [routePolyline, setRoutePolyline] = useState<[number, number][]>([]);
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [distanceError, setDistanceError] = useState("");
 
@@ -87,6 +90,11 @@ export function Calculator() {
         body: JSON.stringify({
           origin: origin?.label ?? "",
           destination: destination?.label ?? "",
+          originLat: origin?.lat,
+          originLon: origin?.lon,
+          destLat: destination?.lat,
+          destLon: destination?.lon,
+          geometry: routePolyline.length > 0 ? JSON.stringify(routePolyline) : undefined,
           distanceKm,
           isRoundTrip,
           consumptionL100,
@@ -132,12 +140,25 @@ export function Calculator() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al calcular la distancia");
       setDistanceKm(data.distanceKm);
+      if (Array.isArray(data.geometry)) {
+        setRoutePolyline(data.geometry);
+      }
     } catch (e) {
       setDistanceError(e instanceof Error ? e.message : "Error al calcular la distancia");
     } finally {
       setDistanceLoading(false);
     }
   }
+
+  // Ruta por carretera automática (OSRM) en cuanto hay origen y destino, sin esperar a un clic.
+  useEffect(() => {
+    if (origin && destination) {
+      fetchDistance();
+    } else {
+      setRoutePolyline([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin?.lat, origin?.lon, destination?.lat, destination?.lon]);
 
   const result = calculateTrip({
     distanceKm,
@@ -149,202 +170,120 @@ export function Calculator() {
     passengersCount: passengerNames.length,
   });
 
-  return (
-    <div className="grid w-full max-w-3xl gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Calculadora de viaje</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <LocationField id="origin" label="Origen" value={origin} onChange={setOrigin} />
-          <LocationField id="destination" label="Destino" value={destination} onChange={setDestination} />
+  const isLast = step === STEPS.length - 1;
+  const canAdvance = step !== 0 || distanceKm > 0;
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!origin || !destination || distanceLoading}
-              onClick={fetchDistance}
+  function next() {
+    if (canAdvance) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
+  function back() {
+    setStep((s) => Math.max(s - 1, 0));
+  }
+
+  return (
+    <div className="flex h-full min-h-0 w-full max-w-5xl flex-col gap-3 p-3 md:p-4">
+      <ol className="flex shrink-0 items-center justify-center gap-1.5 sm:gap-2">
+        {STEPS.map((label, i) => (
+          <li key={label} className="flex items-center gap-1.5 sm:gap-2">
+            <span
+              className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+                i === step
+                  ? "bg-primary text-primary-foreground"
+                  : i < step
+                    ? "bg-primary/25 text-primary"
+                    : "bg-muted text-muted-foreground"
+              }`}
             >
-              {distanceLoading ? <Loader2 className="animate-spin" /> : <Route />}
-              Calcular distancia
-            </Button>
-            {distanceError && <span className="text-xs text-destructive">{distanceError}</span>}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="distanceKm">Distancia (km)</Label>
-            <Input
-              id="distanceKm"
-              type="number"
-              min={0}
-              value={distanceKm}
-              onChange={(e) => setDistanceKm(numberField(e.target.value))}
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={isRoundTrip} onCheckedChange={(v) => setIsRoundTrip(v === true)} />
-            Ida y vuelta
-          </label>
-
-          {myVehicles.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="myVehicle">Mi vehículo</Label>
-              <select
-                id="myVehicle"
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-                value={selectedVehicleId}
-                onChange={(e) => selectVehicle(e.target.value)}
-              >
-                {myVehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.brand} {v.model} ({v.year})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <span className="flex items-center gap-1.5 text-sm font-medium">
-              <Sparkles size={14} className="text-primary" />
-              Estimar consumo con IA (opcional)
+              {i + 1}
             </span>
-            <div className="grid grid-cols-3 gap-2">
-              <Input
-                placeholder="Marca"
-                value={vehicleBrand}
-                onChange={(e) => setVehicleBrand(e.target.value)}
-              />
-              <Input
-                placeholder="Modelo"
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-              />
-              <Input
-                placeholder="Año"
-                value={vehicleYear}
-                onChange={(e) => setVehicleYear(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!vehicleBrand || !vehicleModel || aiLoading}
-                onClick={estimateConsumption}
-              >
-                {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                Estimar consumo
-              </Button>
-              {aiError && <span className="text-xs text-destructive">{aiError}</span>}
-            </div>
-          </div>
+            <span
+              className={`hidden text-xs sm:inline ${i === step ? "font-medium text-foreground" : "text-muted-foreground"}`}
+            >
+              {label}
+            </span>
+            {i < STEPS.length - 1 && <span className="h-px w-4 bg-border sm:w-8" />}
+          </li>
+        ))}
+      </ol>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="consumption">Consumo (L/100km)</Label>
-              <Input
-                id="consumption"
-                type="number"
-                min={0}
-                step={0.1}
-                value={consumptionL100}
-                onChange={(e) => setConsumptionL100(numberField(e.target.value))}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fuelPrice">Precio combustible (€/L)</Label>
-              <Input
-                id="fuelPrice"
-                type="number"
-                min={0}
-                step={0.01}
-                value={fuelPricePerLiter}
-                onChange={(e) => setFuelPricePerLiter(numberField(e.target.value))}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tolls">Peajes (€)</Label>
-              <Input
-                id="tolls"
-                type="number"
-                min={0}
-                step={0.01}
-                value={tollsCost}
-                onChange={(e) => setTollsCost(numberField(e.target.value))}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="extras">Otros gastos (€)</Label>
-              <Input
-                id="extras"
-                type="number"
-                min={0}
-                step={0.01}
-                value={extraCosts}
-                onChange={(e) => setExtraCosts(numberField(e.target.value))}
-              />
-            </div>
-          </div>
+      <div className="min-h-0 flex-1">
+        {step === 0 && (
+          <StepRoute
+            origin={origin}
+            destination={destination}
+            onOriginChange={setOrigin}
+            onDestinationChange={setDestination}
+            distanceKm={distanceKm}
+            setDistanceKm={setDistanceKm}
+            routePolyline={routePolyline}
+            distanceLoading={distanceLoading}
+            distanceError={distanceError}
+            onRetryDistance={fetchDistance}
+          />
+        )}
+        {step === 1 && (
+          <StepVehicle
+            isRoundTrip={isRoundTrip}
+            setIsRoundTrip={setIsRoundTrip}
+            myVehicles={myVehicles}
+            selectedVehicleId={selectedVehicleId}
+            selectVehicle={selectVehicle}
+            vehicleBrand={vehicleBrand}
+            setVehicleBrand={setVehicleBrand}
+            vehicleModel={vehicleModel}
+            setVehicleModel={setVehicleModel}
+            vehicleYear={vehicleYear}
+            setVehicleYear={setVehicleYear}
+            aiLoading={aiLoading}
+            aiError={aiError}
+            estimateConsumption={estimateConsumption}
+            consumptionL100={consumptionL100}
+            setConsumptionL100={setConsumptionL100}
+            fuelPricePerLiter={fuelPricePerLiter}
+            setFuelPricePerLiter={setFuelPricePerLiter}
+            tollsCost={tollsCost}
+            setTollsCost={setTollsCost}
+            extraCosts={extraCosts}
+            setExtraCosts={setExtraCosts}
+          />
+        )}
+        {step === 2 && (
+          <StepPassengers
+            passengerNames={passengerNames}
+            addPassenger={addPassenger}
+            removePassenger={removePassenger}
+            renamePassenger={renamePassenger}
+          />
+        )}
+        {step === 3 && (
+          <StepSummary
+            origin={origin}
+            destination={destination}
+            distanceKm={distanceKm}
+            isRoundTrip={isRoundTrip}
+            consumptionL100={consumptionL100}
+            passengerNames={passengerNames}
+            routePolyline={routePolyline}
+            result={result}
+            ticketLoading={ticketLoading}
+            ticketError={ticketError}
+            onGenerate={generateTicket}
+          />
+        )}
+      </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Pasajeros</Label>
-            {passengerNames.map((name, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  placeholder={i === 0 ? "Conductor" : `Persona ${i + 1}`}
-                  value={name}
-                  onChange={(e) => renamePassenger(i, e.target.value)}
-                />
-                {i > 0 && (
-                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => removePassenger(i)}>
-                    <X />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={addPassenger}>
-              <Plus />
-              Añadir pasajero
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>Resultado</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <Row label="Coste total" value={result.totalCost} big />
-          <Row label="Cada persona paga" value={result.costPerPassenger} />
-          <Row label="El conductor cobra" value={result.driverReceives} />
-          <Button
-            type="button"
-            disabled={distanceKm <= 0 || passengerNames.length < 1 || ticketLoading}
-            onClick={generateTicket}
-          >
-            {ticketLoading ? <Loader2 className="animate-spin" /> : <Receipt />}
-            Generar ticket
+      <div className="flex shrink-0 items-center justify-between">
+        <Button type="button" variant="outline" onClick={back} disabled={step === 0}>
+          <ChevronLeft />
+          Atrás
+        </Button>
+        {!isLast && (
+          <Button type="button" onClick={next} disabled={!canAdvance}>
+            Siguiente
+            <ChevronRight />
           </Button>
-          {ticketError && <span className="text-xs text-destructive">{ticketError}</span>}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Row({ label, value, big }: { label: string; value: number; big?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={big ? "text-2xl font-semibold" : "text-lg font-medium"}>
-        {value.toFixed(2)} €
-      </span>
+        )}
+      </div>
     </div>
   );
 }

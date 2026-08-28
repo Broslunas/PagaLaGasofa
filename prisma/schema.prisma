@@ -88,6 +88,11 @@ type Passenger {
   hasPaid Boolean @default(false)
 }
 
+type PointCoord {
+  lat Float
+  lon Float
+}
+
 model Trip {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
   // nullable: anonymous (not-logged-in) users can also generate/share trips
@@ -96,6 +101,12 @@ model Trip {
 
   origin      String
   destination String
+  originLat   Float?
+  originLon   Float?
+  destLat     Float?
+  destLon     Float?
+  geometry    String?
+
   distanceKm  Float
   isRoundTrip Boolean @default(false)
 

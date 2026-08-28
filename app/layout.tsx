@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Header } from "@/components/layout/header";
+import { ConditionalFooter } from "@/components/layout/conditional-footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,8 +17,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PagaLaGasofa",
-  description: "Calcula y reparte el gasto de gasolina entre amigos",
+  metadataBase: new URL("https://pagalagasofa.broslunas.com"),
+  title: "PagaLaGasofa — Reparte la gasolina entre amigos",
+  description: "Calcula distancia, consumo y reparte el gasto de gasolina entre amigos de forma justa y rápida.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png" }],
+  },
+  openGraph: {
+    title: "PagaLaGasofa — Reparte la gasolina entre amigos",
+    description: "Calcula distancia, consumo y reparte el gasto de gasolina entre amigos de forma justa y rápida.",
+    url: "https://pagalagasofa.broslunas.com",
+    siteName: "PagaLaGasofa",
+    locale: "es_ES",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -27,11 +44,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex h-dvh flex-col">
         <ThemeProvider>
           <SessionProvider>
             <Header />
             {children}
+            <ConditionalFooter />
           </SessionProvider>
         </ThemeProvider>
       </body>
