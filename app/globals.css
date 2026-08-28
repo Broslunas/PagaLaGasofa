@@ -150,6 +150,15 @@
   border: none !important;
 }
 
+.custom-gas-marker:hover > div {
+  transform: translate(-50%, -100%) scale(1.12) !important;
+  z-index: 9999 !important;
+}
+
+.custom-gas-marker.mini-marker:hover > div {
+  transform: translate(-50%, -50%) scale(1.4) !important;
+}
+
 .leaflet-popup-content-wrapper {
   background-color: #18181b !important;
   color: #fafafa !important;

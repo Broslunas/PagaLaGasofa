@@ -22,23 +22,21 @@ export interface MapStationItem {
 
 function createPriceMarker(price: number | null, isCheapest: boolean, isMini: boolean) {
   const priceText = price ? `${price.toFixed(3)}€` : "N/D";
-  const bg = isCheapest ? "#059669" : "#18181b";
-  const border = isCheapest ? "#34d399" : "#f97316";
-  const text = isCheapest ? "#ffffff" : "#f4f4f5";
 
   if (isMini) {
+    const dotBg = isCheapest ? "#10b981" : "#f97316";
     const miniHtml = `
       <div style="
         position: absolute;
         left: 0;
         top: 0;
         transform: translate(-50%, -50%);
-        width: 10px;
-        height: 10px;
+        width: 11px;
+        height: 11px;
         border-radius: 9999px;
-        background: ${border};
-        border: 2px solid #09090b;
-        box-shadow: 0 0 6px rgba(0,0,0,0.6);
+        background: ${dotBg};
+        border: 2px solid #ffffff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.4);
         cursor: pointer;
         transition: transform 0.15s ease;
       "></div>
@@ -51,8 +49,18 @@ function createPriceMarker(price: number | null, isCheapest: boolean, isMini: bo
     });
   }
 
+  const bg = isCheapest
+    ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+    : "linear-gradient(135deg, #1f2937 0%, #111827 100%)";
+  const borderColor = isCheapest ? "#34d399" : "rgba(255,255,255,0.18)";
+  const iconColor = isCheapest ? "#a7f3d0" : "#fb923c";
+  const shadow = isCheapest
+    ? "0 4px 14px -1px rgba(5,150,105,0.5), 0 2px 5px rgba(0,0,0,0.3)"
+    : "0 4px 12px -1px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.25)";
+  const tipColor = isCheapest ? "#047857" : "#111827";
+
   const svgFuel = `
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
       <path d="M3 22h12"/>
       <path d="M4 9h10"/>
       <path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/>
@@ -65,27 +73,43 @@ function createPriceMarker(price: number | null, isCheapest: boolean, isMini: bo
       position: absolute;
       left: 0;
       top: 0;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -100%);
       display: inline-flex;
+      flex-direction: column;
       align-items: center;
-      gap: 3.5px;
-      padding: 2.5px 7px;
-      border-radius: 9999px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1;
-      background: ${bg};
-      color: ${text};
-      border: 1.5px solid ${border};
-      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
-      white-space: nowrap;
       cursor: pointer;
-      user-select: none;
       pointer-events: auto;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     ">
-      ${svgFuel}
-      <span style="letter-spacing: -0.01em;">${priceText}</span>
+      <div style="
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px 3px 6px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        background: ${bg};
+        color: #ffffff;
+        border: 1px solid ${borderColor};
+        box-shadow: ${shadow};
+        white-space: nowrap;
+        user-select: none;
+      ">
+        ${svgFuel}
+        <span style="letter-spacing: -0.02em;">${priceText}</span>
+      </div>
+      <div style="
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid ${tipColor};
+        margin-top: -1px;
+      "></div>
     </div>
   `;
 
