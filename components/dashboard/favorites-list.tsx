@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Heart, MapPin, Trash2, ExternalLink, Info, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,45 @@ export interface FavoriteItem {
   provinceId?: string | null;
   lat?: number | null;
   lng?: number | null;
+  priceAtSave?: number | null;
+}
+
+// Compara el precio de Gasolina 95 guardado con el actual. current es null
+// mientras no ha llegado la respuesta de /api/gasolineras/[id].
+function formatPriceDelta(saved: number, current: number | null | undefined) {
+  if (current == null) return { text: `Guardada a ${saved.toFixed(3)} €/L (95)`, className: "text-muted-foreground" };
+  const diff = Math.round((current - saved) * 100) / 100;
+  if (diff === 0) return { text: `Sin cambios: ${saved.toFixed(3)} €/L (95)`, className: "text-muted-foreground" };
+  return {
+    text: `${diff > 0 ? "+" : ""}${diff.toFixed(2)} €/L (95) desde que la guardaste`,
+    className: diff > 0 ? "text-rose-500" : "text-emerald-500",
+  };
 }
 
 export function FavoritesList({ initialFavorites }: { initialFavorites: FavoriteItem[] }) {
   const [favorites, setFavorites] = useState<FavoriteItem[]>(initialFavorites);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPrices, setCurrentPrices] = useState<Record<string, number | null>>({});
+
+  // Precio actual solo para las que tienen snapshot que comparar. Una vez al
+  // montar; si se borra/añade un favorito no hace falta refrescar esto.
+  useEffect(() => {
+    initialFavorites
+      .filter((f): f is FavoriteItem & { priceAtSave: number } => typeof f.priceAtSave === "number")
+      .forEach((f) => {
+        const url = f.provinceId
+          ? `/api/gasolineras/${f.stationId}?provincia=${f.provinceId}`
+          : `/api/gasolineras/${f.stationId}`;
+        fetch(url)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            const price = data?.station?.prices?.gasolina95;
+            setCurrentPrices((p) => ({ ...p, [f.stationId]: typeof price === "number" ? price : null }));
+          })
+          .catch(() => {});
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const removeFavorite = async (stationId: string) => {
     setDeletingId(stationId);
@@ -97,6 +131,17 @@ export function FavoritesList({ initialFavorites }: { initialFavorites: Favorite
                 {station.address}, {station.municipality} ({station.province})
               </span>
             </div>
+
+            {typeof station.priceAtSave === "number" &&
+              (() => {
+                const { text, className } = formatPriceDelta(station.priceAtSave, currentPrices[station.stationId]);
+                return (
+                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${className}`}>
+                    <Fuel className="size-3.5" />
+                    {text}
+                  </div>
+                );
+              })()}
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3 text-xs">

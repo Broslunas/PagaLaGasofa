@@ -66,7 +66,7 @@ export function Calculator() {
 
   const { data: authSession } = useSession();
   const [myVehicles, setMyVehicles] = useState<
-    { id: string; brand: string; model: string; year: number; avgConsumption: number; isDefault: boolean }[]
+    { id: string; brand: string; model: string; year: number; fuelType: string; avgConsumption: number; isDefault: boolean }[]
   >([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [myFavorites, setMyFavorites] = useState<

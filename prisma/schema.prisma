@@ -162,6 +162,12 @@ model FavoriteStation {
   provinceId   String?
   lat          Float?
   lng          Float?
+  // Precio de Gasolina 95 en el momento de guardar (mismo combustible que usa
+  // /api/gasolineras como key por defecto), para comparar con el actual en
+  // favorites-list.tsx. Nullable: favoritos guardados antes de esto no lo tienen.
+  // ponytail: solo un combustible, no las 5 keys de GasStation.prices — si
+  // hace falta comparar diésel etc., pasar a un tipo embebido tipo PointCoord.
+  priceAtSave  Float?
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

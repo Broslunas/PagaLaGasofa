@@ -197,6 +197,7 @@ export default function GasolineraDetailPage({
                     provinceId: provincia,
                     lat: station.lat,
                     lng: station.lng,
+                    priceAtSave: station.prices.gasolina95,
                   }}
                   showLabel
                   size="sm"

@@ -16,6 +16,7 @@ interface FavoriteButtonProps {
     provinceId?: string;
     lat?: number;
     lng?: number;
+    priceAtSave?: number | null;
   };
   initialIsFavorite?: boolean;
   onToggle?: (isFav: boolean) => void;
@@ -63,6 +64,7 @@ export function FavoriteButton({
             provinceId: station.provinceId,
             lat: station.lat,
             lng: station.lng,
+            priceAtSave: station.priceAtSave,
           }),
         });
       } else {

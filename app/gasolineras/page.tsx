@@ -473,6 +473,7 @@ export default function GasolinerasPage() {
                               provinceId: selectedProvince,
                               lat: station.lat,
                               lng: station.lng,
+                              priceAtSave: station.prices.gasolina95,
                             }}
                             size="icon-xs"
                             className="size-7"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,15 @@ import { Loader2, Sparkles, Fuel, Save } from "lucide-react";
 
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
-type Vehicle = { id: string; brand: string; model: string; year: number; avgConsumption: number; isDefault: boolean };
+type Vehicle = {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  fuelType: string;
+  avgConsumption: number;
+  isDefault: boolean;
+};
 type Favorite = { stationId: string; name: string; brand: string; provinceId: string | null };
 
 // Mismas keys que devuelve /api/gasolineras (GasStation.prices).
@@ -20,6 +28,18 @@ const FUEL_OPTIONS: { key: string; label: string }[] = [
   { key: "dieselPremium", label: "Diésel Premium" },
   { key: "glp", label: "GLP" },
 ];
+
+// Vehicle.fuelType es texto libre (sin enum en el resto de la app, ver
+// vehicle-garage.tsx), así que esto es una heurística por substring, no un
+// mapeo exacto — solo sirve para preseleccionar, el usuario puede corregirlo
+// en el select de abajo.
+function guessFuelKey(fuelType: string): string {
+  const t = fuelType.toLowerCase();
+  if (t.includes("98")) return "gasolina98";
+  if (t.includes("diesel") || t.includes("diésel") || t.includes("gasóleo") || t.includes("gasoleo")) return "diesel";
+  if (t.includes("glp") || t.includes("gas licuado")) return "glp";
+  return "gasolina95";
+}
 
 const selectClass =
   "h-8 w-full min-w-0 cursor-pointer rounded-lg border border-input bg-card px-2.5 py-1 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-card";
@@ -89,6 +109,14 @@ export function StepVehicle({
 }) {
   const [favStationId, setFavStationId] = useState("");
   const [favFuelKey, setFavFuelKey] = useState(FUEL_OPTIONS[0].key);
+  const [showAiEstimate, setShowAiEstimate] = useState(false);
+
+  // Al elegir/cambiar de vehículo, preseleccionar el combustible del picker
+  // de favoritos según su fuelType real en vez del "gasolina95" fijo de antes.
+  useEffect(() => {
+    const vehicle = myVehicles.find((v) => v.id === selectedVehicleId);
+    if (vehicle) setFavFuelKey(guessFuelKey(vehicle.fuelType));
+  }, [selectedVehicleId, myVehicles]);
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col gap-4 overflow-y-auto">
@@ -115,39 +143,46 @@ export function StepVehicle({
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
-        <span className="flex items-center gap-1.5 text-sm font-medium">
-          <Sparkles size={14} className="text-primary" />
+      {!showAiEstimate ? (
+        <Button type="button" variant="outline" size="sm" onClick={() => setShowAiEstimate(true)}>
+          <Sparkles />
           Estimar consumo con IA (opcional)
-        </span>
-        <div className="grid grid-cols-3 gap-2">
-          <Input placeholder="Marca" value={vehicleBrand} onChange={(e) => setVehicleBrand(e.target.value)} />
-          <Input placeholder="Modelo" value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} />
-          <Input placeholder="Año" value={vehicleYear} onChange={(e) => setVehicleYear(e.target.value)} />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!vehicleBrand || !vehicleModel || aiLoading}
-            onClick={estimateConsumption}
-          >
-            {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            Estimar consumo
-          </Button>
-          {aiError && <span className="text-xs text-destructive">{aiError}</span>}
-        </div>
-        {isLoggedIn && vehicleBrand && vehicleModel && consumptionL100 > 0 && (
-          <div className="flex items-center gap-2 border-t border-primary/20 pt-2">
-            <Button type="button" variant="outline" size="sm" disabled={savingVehicle} onClick={saveVehicle}>
-              {savingVehicle ? <Loader2 className="animate-spin" /> : <Save />}
-              Guardar en mi garage
-            </Button>
-            {saveVehicleError && <span className="text-xs text-destructive">{saveVehicleError}</span>}
+        </Button>
+      ) : (
+        <div className="flex flex-col gap-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <Sparkles size={14} className="text-primary" />
+            Estimar consumo con IA (opcional)
+          </span>
+          <div className="grid grid-cols-3 gap-2">
+            <Input placeholder="Marca" value={vehicleBrand} onChange={(e) => setVehicleBrand(e.target.value)} />
+            <Input placeholder="Modelo" value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} />
+            <Input placeholder="Año" value={vehicleYear} onChange={(e) => setVehicleYear(e.target.value)} />
           </div>
-        )}
-      </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!vehicleBrand || !vehicleModel || aiLoading}
+              onClick={estimateConsumption}
+            >
+              {aiLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              Estimar consumo
+            </Button>
+            {aiError && <span className="text-xs text-destructive">{aiError}</span>}
+          </div>
+          {isLoggedIn && vehicleBrand && vehicleModel && consumptionL100 > 0 && (
+            <div className="flex items-center gap-2 border-t border-primary/20 pt-2">
+              <Button type="button" variant="outline" size="sm" disabled={savingVehicle} onClick={saveVehicle}>
+                {savingVehicle ? <Loader2 className="animate-spin" /> : <Save />}
+                Guardar en mi garage
+              </Button>
+              {saveVehicleError && <span className="text-xs text-destructive">{saveVehicleError}</span>}
+            </div>
+          )}
+        </div>
+      )}
 
       {myFavorites.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-border/40 p-3">

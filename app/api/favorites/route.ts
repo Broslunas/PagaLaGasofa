@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { stationId, name, brand, address, municipality, province, provinceId, lat, lng } = body;
+  const { stationId, name, brand, address, municipality, province, provinceId, lat, lng, priceAtSave } = body;
 
   if (!stationId || !name) {
     return Response.json({ error: "Datos incompletos" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       provinceId: provinceId ? String(provinceId) : null,
       lat: typeof lat === "number" ? lat : null,
       lng: typeof lng === "number" ? lng : null,
+      priceAtSave: typeof priceAtSave === "number" ? priceAtSave : null,
     },
     update: {
       name: String(name),
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
       provinceId: provinceId ? String(provinceId) : null,
       lat: typeof lat === "number" ? lat : null,
       lng: typeof lng === "number" ? lng : null,
+      priceAtSave: typeof priceAtSave === "number" ? priceAtSave : null,
     },
   });
 
