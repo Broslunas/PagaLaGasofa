@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { CopyLinkButton } from "@/components/ticket/copy-link-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
+import { PassengerSelector } from "@/components/ticket/passenger-selector";
 import { Button } from "@/components/ui/button";
 import { shortenAddress } from "@/lib/format-address";
-import { ArrowRight, CheckCircle2, CircleDashed, Download, Fuel, Receipt, Route, Users } from "lucide-react";
+import { ArrowRight, Download, Fuel, Receipt, Route, Users } from "lucide-react";
 
 export default async function TicketPage({ params }: { params: Promise<{ shareId: string }> }) {
   const { shareId } = await params;
@@ -101,53 +102,12 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
               </CardContent>
             </Card>
 
-            {/* Lista de Pasajeros y pagos */}
-            <Card className="border-border/60 bg-card/80">
-              <CardContent className="space-y-3 p-5">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Pasajeros & Bizums
-                </span>
-                <div className="space-y-2">
-                  {trip.passengers.map((p, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2.5 text-sm"
-                    >
-                      <span className="min-w-0 font-medium break-words text-foreground">
-                        {p.name}
-                        {trip.waypoints.length > 0 &&
-                          p.pickupStop != null &&
-                          p.dropoffStop != null && (
-                            <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">
-                              {stopLabels[p.pickupStop]} → {stopLabels[p.dropoffStop]}
-                            </span>
-                          )}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-foreground">{p.amount.toFixed(2)} €</span>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${
-                            p.hasPaid
-                              ? "bg-green-500/10 text-green-500"
-                              : "bg-amber-500/10 text-amber-500"
-                          }`}
-                        >
-                          {p.hasPaid ? (
-                            <>
-                              <CheckCircle2 size={12} /> Pagado
-                            </>
-                          ) : (
-                            <>
-                              <CircleDashed size={12} /> Pendiente
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Lista de Pasajeros, selector interactivo y Bizum */}
+            <PassengerSelector
+              passengers={trip.passengers}
+              stopLabels={stopLabels}
+              driverName={trip.passengers[0]?.name || "el conductor"}
+            />
           </div>
 
           {/* Columna Derecha: Mapa con puntos exactos de origen y destino */}
