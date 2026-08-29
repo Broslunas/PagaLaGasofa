@@ -53,6 +53,22 @@ const BRAND_LOGO_FILES: Record<string, string> = {
   IBERDOEX: "iberdoex.svg",
   "LOW COST": "lowcost.png",
   LOW: "lowcost.png",
+  EASYGAS: "easygas.png",
+  AGROPAL: "agropal.jpg",
+  ASC: "asc.svg",
+  PETROMIRALLES: "petromiralles.png",
+  FAMILY: "familyenergy.png",
+  FARRUCO: "farruco.png",
+  SUPECO: "supeco.webp",
+  DST: "dst.jpg",
+  STAROIL: "staroil.png",
+  BDMED: "bdmed.png",
+  MLC: "mlc.png",
+  "E.LECLERC": "leclerc.svg",
+  "E-LECLERC": "leclerc.svg",
+  "E. LECLERC": "leclerc.svg",
+  LUKOIL: "lukoil.svg",
+  COSTCO: "costco.svg",
 };
 
 export function getBrandLogoUrl(brand: string): string | null {

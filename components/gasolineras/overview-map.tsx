@@ -7,6 +7,7 @@ import { Layers, Maximize2, Minimize2, Sparkles } from "lucide-react";
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import Link from "next/link";
 import { MAP_STYLES, MapStyleKey } from "@/components/calculator/location-map";
+import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
 
 export interface MapStationItem {
   id: string;
@@ -359,22 +360,29 @@ export default function GasStationsOverviewMap({
               }}
             >
               <Popup className="station-popup">
-                <div className="p-0.5 text-xs min-w-[190px]">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="font-bold uppercase text-[10px] text-zinc-400">
-                      {s.brand}
-                    </span>
-                    {s.isCheapest && (
-                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
-                        MÁS BARATO
-                      </span>
-                    )}
+                <div className="p-0.5 text-xs min-w-[210px]">
+                  <div className="flex items-start gap-2.5">
+                    <BrandAvatar brand={s.brand} className="size-10 text-[11px] rounded-lg p-1 shadow-xs shrink-0" />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold uppercase text-[10px] text-zinc-400 truncate">
+                          {s.brand}
+                        </span>
+                        {s.isCheapest && (
+                          <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 shrink-0">
+                            MÁS BARATO
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="font-bold text-sm text-zinc-100 leading-snug mt-0.5 line-clamp-1">
+                        {s.name}
+                      </p>
+                    </div>
                   </div>
 
-                  <p className="font-bold text-sm text-zinc-100 leading-snug mt-1 line-clamp-1">
-                    {s.name}
-                  </p>
-                  <p className="text-zinc-400 mt-0.5 text-[11px] line-clamp-2">
+                  <p className="text-zinc-400 mt-2 text-[11px] line-clamp-2">
                     {s.address}, {s.municipality}
                   </p>
 

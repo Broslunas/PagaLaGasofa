@@ -24,6 +24,15 @@ assert.equal(getBrandLogoUrl("GMOIL"), "/brands/gmoil.png");
 assert.equal(getBrandLogoUrl("H2EXAGON"), "/brands/h2exagon.png");
 assert.equal(getBrandLogoUrl("H2GO"), "/brands/h2exagon.png");
 
+// Ronda nacional adicional (baja frecuencia pero marcas reales identificables)
+assert.equal(getBrandLogoUrl("ASC CARBURANTES"), "/brands/asc.svg");
+assert.equal(getBrandLogoUrl("FAMILY ENERGY"), "/brands/familyenergy.png");
+assert.equal(getBrandLogoUrl("FARRUCO S.A."), "/brands/farruco.png");
+assert.equal(getBrandLogoUrl("E.LECLERC LEON"), "/brands/leclerc.svg");
+assert.equal(getBrandLogoUrl("E-LECLERC"), "/brands/leclerc.svg");
+assert.equal(getBrandLogoUrl("LUKOIL"), "/brands/lukoil.svg");
+assert.equal(getBrandLogoUrl("COSTCO"), "/brands/costco.svg");
+
 // Marca pequeña/no mapeada -> null (fallback a iniciales en brand-avatar.tsx)
 assert.equal(getBrandLogoUrl("Estación de Servicio El Cruce Desconocido"), null);
 assert.equal(getBrandLogoUrl(""), null);

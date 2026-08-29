@@ -593,58 +593,61 @@ export default function GasolinerasPage() {
                         : "border-border/60"
                     }`}
                   >
-                    {/* Header: Brand & Name */}
+                    {/* Header: Logo, Name & Actions */}
                     <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <BrandAvatar brand={station.brand} />
-                          <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            {station.brand || "Estación"}
-                          </span>
-                        </div>
+                      <div className="flex items-start gap-3">
+                        <BrandAvatar brand={station.brand} className="size-12 text-sm rounded-xl p-1.5 shadow-xs" />
 
-                        <div className="flex items-center gap-1.5">
-                          {isCheapest && (
-                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                              MÁS BARATO
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                              {station.brand || "Estación"}
                             </span>
-                          )}
-                          <FavoriteButton
-                            key={`${station.id}:${favoriteIds.has(station.id)}`}
-                            station={{
-                              id: station.id,
-                              name: station.name,
-                              brand: station.brand,
-                              address: station.address,
-                              municipality: station.municipality,
-                              province: station.province,
-                              provinceId: selectedProvince,
-                              lat: station.lat,
-                              lng: station.lng,
-                              priceAtSave: station.prices.gasolina95,
-                            }}
-                            initialIsFavorite={favoriteIds.has(station.id)}
-                            onToggle={(isFav) => {
-                              setFavoriteIds((prev) => {
-                                const next = new Set(prev);
-                                isFav ? next.add(station.id) : next.delete(station.id);
-                                return next;
-                              });
-                            }}
-                            size="icon-xs"
-                            className="size-7"
-                          />
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isCheapest && (
+                                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  MÁS BARATO
+                                </span>
+                              )}
+                              <FavoriteButton
+                                key={`${station.id}:${favoriteIds.has(station.id)}`}
+                                station={{
+                                  id: station.id,
+                                  name: station.name,
+                                  brand: station.brand,
+                                  address: station.address,
+                                  municipality: station.municipality,
+                                  province: station.province,
+                                  provinceId: selectedProvince,
+                                  lat: station.lat,
+                                  lng: station.lng,
+                                  priceAtSave: station.prices.gasolina95,
+                                }}
+                                initialIsFavorite={favoriteIds.has(station.id)}
+                                onToggle={(isFav) => {
+                                  setFavoriteIds((prev) => {
+                                    const next = new Set(prev);
+                                    isFav ? next.add(station.id) : next.delete(station.id);
+                                    return next;
+                                  });
+                                }}
+                                size="icon-xs"
+                                className="size-7"
+                              />
+                            </div>
+                          </div>
+
+                          <h2 className="mt-1 text-base font-semibold leading-snug line-clamp-1">
+                            <Link
+                              href={`/gasolineras/${station.id}?provincia=${selectedProvince}`}
+                              className="hover:text-primary transition-colors"
+                            >
+                              {station.name}
+                            </Link>
+                          </h2>
                         </div>
                       </div>
-
-                      <h2 className="mt-1.5 text-base font-semibold leading-tight line-clamp-1">
-                        <Link
-                          href={`/gasolineras/${station.id}?provincia=${selectedProvince}`}
-                          className="hover:text-primary transition-colors"
-                        >
-                          {station.name}
-                        </Link>
-                      </h2>
 
                       {/* Location & Details */}
                       <div className="mt-2.5 space-y-1.5 text-xs text-muted-foreground">

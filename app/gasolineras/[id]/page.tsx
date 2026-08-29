@@ -194,44 +194,47 @@ export default function GasolineraDetailPage({
           </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <BrandAvatar brand={station.brand} className="size-10 text-sm" />
-                <span className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {station.brand}
-                </span>
-                <span className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  MITECO Verificado
-                </span>
+            <div className="flex items-start gap-4">
+              <BrandAvatar brand={station.brand} className="size-16 text-base rounded-2xl p-2 shadow-sm shrink-0" />
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    {station.brand}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    MITECO Verificado
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                    {station.name}
+                  </h1>
+                  <FavoriteButton
+                    key={favoriteLoaded ? "loaded" : "loading"}
+                    initialIsFavorite={isFavorite}
+                    station={{
+                      id: station.id,
+                      name: station.name,
+                      brand: station.brand,
+                      address: station.address,
+                      municipality: station.municipality,
+                      province: station.province,
+                      provinceId: provincia,
+                      lat: station.lat,
+                      lng: station.lng,
+                      priceAtSave: station.prices.gasolina95,
+                    }}
+                    showLabel
+                    size="sm"
+                    className="border border-border/60 bg-card/60 shadow-xs"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {station.address}, {station.postalCode} {station.municipality} ({station.province})
+                </p>
               </div>
-              <div className="mt-2 flex items-center gap-3">
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                  {station.name}
-                </h1>
-                <FavoriteButton
-                  key={favoriteLoaded ? "loaded" : "loading"}
-                  initialIsFavorite={isFavorite}
-                  station={{
-                    id: station.id,
-                    name: station.name,
-                    brand: station.brand,
-                    address: station.address,
-                    municipality: station.municipality,
-                    province: station.province,
-                    provinceId: provincia,
-                    lat: station.lat,
-                    lng: station.lng,
-                    priceAtSave: station.prices.gasolina95,
-                  }}
-                  showLabel
-                  size="sm"
-                  className="border border-border/60 bg-card/60 shadow-xs"
-                />
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {station.address}, {station.postalCode} {station.municipality} ({station.province})
-              </p>
             </div>
 
             {station.lat !== 0 && station.lng !== 0 && (

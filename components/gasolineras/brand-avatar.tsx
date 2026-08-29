@@ -22,7 +22,7 @@ export function BrandAvatar({
         src={logoUrl}
         alt={label}
         title={label}
-        className={`shrink-0 rounded-lg border border-border/50 bg-white object-contain p-1 ${className}`}
+        className={`shrink-0 rounded-lg border border-border/50 bg-[#616161] object-contain p-1 ${className}`}
         onError={() => setFailed(true)}
       />
     );

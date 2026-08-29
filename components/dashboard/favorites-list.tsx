@@ -97,39 +97,42 @@ export function FavoritesList({ initialFavorites }: { initialFavorites: Favorite
           className="flex flex-col justify-between rounded-xl border border-border/70 bg-card p-4 text-card-foreground shadow-xs transition hover:border-primary/40"
         >
           <div>
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <BrandAvatar brand={station.brand} className="size-8 text-[11px]" />
-                <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {station.brand || "Estación"}
-                </span>
-              </div>
+            <div className="flex items-start gap-3">
+              <BrandAvatar brand={station.brand} className="size-11 text-xs rounded-xl p-1.5 shadow-xs" />
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => removeFavorite(station.stationId)}
-                disabled={deletingId === station.stationId}
-                className="text-muted-foreground hover:text-rose-500"
-                title="Eliminar de favoritos"
-              >
-                <Trash2 className="size-4" />
-              </Button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                    {station.brand || "Estación"}
+                  </span>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeFavorite(station.stationId)}
+                    disabled={deletingId === station.stationId}
+                    className="text-muted-foreground hover:text-rose-500 shrink-0 size-7"
+                    title="Eliminar de favoritos"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+
+                <h3 className="mt-1 text-sm font-semibold leading-tight line-clamp-1">
+                  <Link
+                    href={`/gasolineras/${station.stationId}${
+                      station.provinceId ? `?provincia=${station.provinceId}` : ""
+                    }`}
+                    className="hover:text-primary transition-colors"
+                  >
+                    {station.name}
+                  </Link>
+                </h3>
+              </div>
             </div>
 
-            <h3 className="mt-2 text-sm font-semibold leading-tight line-clamp-1">
-              <Link
-                href={`/gasolineras/${station.stationId}${
-                  station.provinceId ? `?provincia=${station.provinceId}` : ""
-                }`}
-                className="hover:text-primary transition-colors"
-              >
-                {station.name}
-              </Link>
-            </h3>
-
-            <div className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <div className="mt-2.5 flex items-start gap-1.5 text-xs text-muted-foreground">
               <MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/70" />
               <span className="line-clamp-2">
                 {station.address}, {station.municipality} ({station.province})
