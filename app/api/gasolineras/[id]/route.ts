@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchProvinceRawList } from "@/lib/gas-prices";
 
 export const revalidate = 1800; // cache 30 mins
 
@@ -123,25 +124,30 @@ export async function GET(
   const provinceId = searchParams.get("provincia");
 
   try {
-    const url = provinceId
-      ? `https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/FiltroProvincia/${provinceId}`
-      : `https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/`;
-
-    const res = await fetch(url, { next: { revalidate: 1800 } });
-    if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch station from MITECO" }, { status: 502 });
+    let rawList: RawStation[];
+    let updatedAt: string | undefined;
+    if (provinceId) {
+      ({ list: rawList, updatedAt } = await fetchProvinceRawList(provinceId));
+    } else {
+      const res = await fetch(
+        "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/",
+        { next: { revalidate: 1800 } }
+      );
+      if (!res.ok) {
+        return NextResponse.json({ error: "Failed to fetch station from MITECO" }, { status: 502 });
+      }
+      const data = await res.json();
+      rawList = data.ListaEESSPrecio || [];
+      updatedAt = data.Fecha;
     }
 
-    const data = await res.json();
-    const rawList: RawStation[] = data.ListaEESSPrecio || [];
     const raw = rawList.find((item) => item.IDEESS === stationId);
-
     if (!raw) {
       return NextResponse.json({ error: "Gasolinera no encontrada" }, { status: 404 });
     }
 
     return NextResponse.json({
-      updatedAt: data.Fecha,
+      updatedAt,
       station: transformRawStation(raw),
     });
   } catch {

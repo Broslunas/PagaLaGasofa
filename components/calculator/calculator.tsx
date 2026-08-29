@@ -49,6 +49,7 @@ export function Calculator() {
   const [isRoundTrip, setIsRoundTrip] = useState(true);
   const [consumptionL100, setConsumptionL100] = useState(6);
   const [fuelPricePerLiter, setFuelPricePerLiter] = useState(1.5);
+  const [fuelType, setFuelType] = useState("gasolina95");
   const [tollsCost, setTollsCost] = useState(0);
   const [extraCosts, setExtraCosts] = useState(0);
   const lastStopIndex = waypoints.length + 1;
@@ -195,6 +196,7 @@ export function Calculator() {
           isRoundTrip,
           consumptionL100,
           fuelPricePerLiter,
+          fuelType,
           tollsCost,
           extraCosts,
           passengers,
@@ -356,6 +358,8 @@ export function Calculator() {
             setConsumptionL100={setConsumptionL100}
             fuelPricePerLiter={fuelPricePerLiter}
             setFuelPricePerLiter={setFuelPricePerLiter}
+            fuelType={fuelType}
+            setFuelType={setFuelType}
             tollsCost={tollsCost}
             setTollsCost={setTollsCost}
             extraCosts={extraCosts}

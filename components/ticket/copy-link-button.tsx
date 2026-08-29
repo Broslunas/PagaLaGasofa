@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 
-export function CopyLinkButton({ shareId }: { shareId: string }) {
+export function CopyLinkButton({ shareId, basePath = "/t" }: { shareId: string; basePath?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(`${window.location.origin}/t/${shareId}`);
+    await navigator.clipboard.writeText(`${window.location.origin}${basePath}/${shareId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

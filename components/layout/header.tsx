@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { LoginButton } from "@/components/auth/login-button";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -35,6 +36,7 @@ export function Header() {
             Gasolineras
           </Link>
           <ThemeToggle />
+          <NotificationBell />
           <LoginButton />
         </nav>
 
@@ -70,6 +72,10 @@ export function Header() {
           <div className="flex items-center justify-between px-2 py-2">
             <span className="text-sm font-medium text-muted-foreground">Tema</span>
             <ThemeToggle />
+          </div>
+          <div className="flex items-center justify-between px-2 py-2">
+            <span className="text-sm font-medium text-muted-foreground">Notificaciones</span>
+            <NotificationBell />
           </div>
           <div className="mt-1 border-t border-border/50 pt-3">
             <LoginButton stacked />

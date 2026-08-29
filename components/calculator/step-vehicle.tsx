@@ -75,6 +75,8 @@ export function StepVehicle({
   saveVehicle,
   savingVehicle,
   saveVehicleError,
+  fuelType,
+  setFuelType,
 }: {
   isRoundTrip: boolean;
   setIsRoundTrip: (v: boolean) => void;
@@ -106,16 +108,18 @@ export function StepVehicle({
   saveVehicle: () => void;
   savingVehicle: boolean;
   saveVehicleError: string;
+  fuelType: string;
+  setFuelType: (v: string) => void;
 }) {
   const [favStationId, setFavStationId] = useState("");
-  const [favFuelKey, setFavFuelKey] = useState(FUEL_OPTIONS[0].key);
   const [showAiEstimate, setShowAiEstimate] = useState(false);
 
-  // Al elegir/cambiar de vehículo, preseleccionar el combustible del picker
-  // de favoritos según su fuelType real en vez del "gasolina95" fijo de antes.
+  // Al elegir/cambiar de vehículo, preseleccionar el combustible real del
+  // viaje (se persiste en Trip.fuelType) según el fuelType del vehículo.
   useEffect(() => {
     const vehicle = myVehicles.find((v) => v.id === selectedVehicleId);
-    if (vehicle) setFavFuelKey(guessFuelKey(vehicle.fuelType));
+    if (vehicle) setFuelType(guessFuelKey(vehicle.fuelType));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVehicleId, myVehicles]);
 
   return (
@@ -199,7 +203,7 @@ export function StepVehicle({
                 </option>
               ))}
             </select>
-            <select className={selectClass} value={favFuelKey} onChange={(e) => setFavFuelKey(e.target.value)}>
+            <select className={selectClass} value={fuelType} onChange={(e) => setFuelType(e.target.value)}>
               {FUEL_OPTIONS.map((f) => (
                 <option key={f.key} value={f.key}>
                   {f.label}
@@ -215,7 +219,7 @@ export function StepVehicle({
               disabled={!favStationId || favPriceLoading}
               onClick={() => {
                 const station = myFavorites.find((f) => f.stationId === favStationId);
-                if (station) applyFavoritePrice(station.stationId, station.provinceId, favFuelKey);
+                if (station) applyFavoritePrice(station.stationId, station.provinceId, fuelType);
               }}
             >
               {favPriceLoading ? <Loader2 className="animate-spin" /> : <Fuel />}

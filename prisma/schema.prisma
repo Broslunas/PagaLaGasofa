@@ -50,11 +50,14 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts  Account[]
-  sessions  Session[]
-  vehicles  Vehicle[]
-  trips     Trip[]
-  favorites FavoriteStation[]
+  accounts          Account[]
+  sessions          Session[]
+  vehicles          Vehicle[]
+  trips             Trip[]
+  favorites         FavoriteStation[]
+  liveShares        LiveShare[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model VerificationToken {
@@ -84,9 +87,9 @@ model Vehicle {
 
 // Embedded document (no own collection) for Trip.passengers
 type Passenger {
-  name    String
-  amount  Float
-  hasPaid Boolean @default(false)
+  name        String
+  amount      Float
+  hasPaid     Boolean @default(false)
   // Índices en la lista ordenada de stops [origen, ...paradas, destino].
   // Nullable: los tickets creados antes de esta feature no los tienen, y en
   // Mongo @default solo aplica al escribir, no al leer un doc existente que
@@ -125,8 +128,13 @@ model Trip {
 
   consumptionL100   Float
   fuelPricePerLiter Float
-  tollsCost         Float @default(0)
-  extraCosts        Float @default(0)
+  // Clave canónica de lib/provinces.ts FUEL_TYPES (gasolina95/98/diesel/
+  // dieselPremium/glp) elegida en el paso de vehículo. Nullable: tickets
+  // creados antes de esta feature no la tienen — lib/co2.ts asume "gasolina95"
+  // para esos al calcular CO2 en las estadísticas.
+  fuelType          String?
+  tollsCost         Float   @default(0)
+  extraCosts        Float   @default(0)
 
   passengersCount  Int
   totalCost        Float
@@ -151,26 +159,76 @@ model VehicleConsumptionCache {
 }
 
 model FavoriteStation {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @db.ObjectId
-  stationId    String
-  name         String
-  brand        String
-  address      String
-  municipality String
-  province     String
-  provinceId   String?
-  lat          Float?
-  lng          Float?
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  stationId         String
+  name              String
+  brand             String
+  address           String
+  municipality      String
+  province          String
+  provinceId        String?
+  lat               Float?
+  lng               Float?
   // Precio de Gasolina 95 en el momento de guardar (mismo combustible que usa
   // /api/gasolineras como key por defecto), para comparar con el actual en
   // favorites-list.tsx. Nullable: favoritos guardados antes de esto no lo tienen.
   // ponytail: solo un combustible, no las 5 keys de GasStation.prices — si
   // hace falta comparar diésel etc., pasar a un tipo embebido tipo PointCoord.
-  priceAtSave  Float?
-  createdAt    DateTime @default(now())
+  priceAtSave       Float?
+  // Último precio (gasolina95) sobre el que ya se avisó al usuario por el cron
+  // de app/api/cron/check-prices — evita renotificar en cada pasada si el
+  // precio no ha vuelto a bajar más. Nullable: favoritos sin priceAtSave nunca
+  // entran en el chequeo (no hay línea base con la que comparar).
+  lastNotifiedPrice Float?
+  createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, stationId])
+}
+
+// Última posición conocida de una sesión de "compartir ubicación en vivo".
+// Un solo doc por sesión, se sobreescribe en cada PATCH — sin histórico de
+// posiciones, solo la última (mínima superficie de datos sensibles guardados).
+model LiveShare {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  shareId   String    @unique @default(cuid())
+  lat       Float?
+  lng       Float?
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  stoppedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  // Texto libre en vez de enum: solo "price_drop" por ahora, evita migrar el
+  // schema al añadir un segundo tipo más adelante.
+  type      String
+  title     String
+  body      String
+  url       String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Suscripción Web Push (PushSubscriptionJSON del navegador) — una fila por
+// endpoint/dispositivo, un usuario puede tener varias (varios navegadores).
+model PushSubscription {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

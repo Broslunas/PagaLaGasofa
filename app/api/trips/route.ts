@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateTrip } from "@/lib/calculator";
+import { FUEL_TYPES } from "@/lib/provinces";
 
 // Recalcula el total en servidor con calculateTrip — nunca confiar en totales
 // que mande el cliente, solo en los inputs crudos (distancias por tramo ya
@@ -21,10 +22,13 @@ export async function POST(request: Request) {
     isRoundTrip,
     consumptionL100,
     fuelPricePerLiter,
+    fuelType,
     tollsCost,
     extraCosts,
     passengers,
   } = body;
+
+  const validFuelType = FUEL_TYPES.some((f) => f.id === fuelType) ? fuelType : null;
 
   if (typeof origin !== "string" || !origin.trim() || typeof destination !== "string" || !destination.trim()) {
     return Response.json({ error: "Faltan origen/destino" }, { status: 400 });
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
       isRoundTrip: !!isRoundTrip,
       consumptionL100: Number(consumptionL100) || 0,
       fuelPricePerLiter: Number(fuelPricePerLiter) || 0,
+      fuelType: validFuelType,
       tollsCost: Number(tollsCost) || 0,
       extraCosts: Number(extraCosts) || 0,
       passengersCount: passengers.length,
