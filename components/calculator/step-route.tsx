@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { LocationField, type GeoPoint } from "@/components/calculator/location-field";
+import type { MapStationMarker } from "@/components/calculator/location-map";
 import { buildStops } from "@/lib/stops";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ const LocationMap = dynamic(
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 
 export function StepRoute({
-  title,
+  title = "",
   onTitleChange,
   origin,
   destination,
@@ -38,9 +39,11 @@ export function StepRoute({
   distanceLoading,
   distanceError,
   onRetryDistance,
+  stationMarkers,
 }: {
-  title: string;
-  onTitleChange: (s: string) => void;
+  /** Solo se guarda (y se muestra el campo) cuando se pasa onTitleChange — p.ej. /viaje persiste el título, /co2 y /en-ruta no. */
+  title?: string;
+  onTitleChange?: (s: string) => void;
   origin: GeoPoint | null;
   destination: GeoPoint | null;
   waypoints: (GeoPoint | null)[];
@@ -53,6 +56,8 @@ export function StepRoute({
   distanceLoading: boolean;
   distanceError: string;
   onRetryDistance: () => void;
+  /** Puntos seleccionables aparte de los stops (p.ej. gasolineras cercanas a la ruta). */
+  stationMarkers?: MapStationMarker[];
 }) {
   // 0 = origen, 1..N = paradas, N+1 = destino
   const [activeStopIndex, setActiveStopIndex] = useState(0);
@@ -77,16 +82,18 @@ export function StepRoute({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 md:flex-row">
       <div className="flex shrink-0 flex-col gap-3 overflow-y-auto md:w-80">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="trip-title">Nombre del viaje (opcional)</Label>
-          <Input
-            id="trip-title"
-            type="text"
-            placeholder="p.ej. Escapada a la playa, Festival..."
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-          />
-        </div>
+        {onTitleChange && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="trip-title">Nombre del viaje (opcional)</Label>
+            <Input
+              id="trip-title"
+              type="text"
+              placeholder="p.ej. Escapada a la playa, Festival..."
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+            />
+          </div>
+        )}
 
         <LocationField
           id="origin"
@@ -177,6 +184,7 @@ export function StepRoute({
           onSelectStopIndex={setActiveStopIndex}
           onAddWaypoint={addWaypoint}
           onPick={handlePick}
+          stationMarkers={stationMarkers}
         />
       </div>
     </div>

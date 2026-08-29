@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Fuel, MapPinned, LayoutDashboard, Radio, Leaf, ArrowRight } from "lucide-react";
+import { Fuel, MapPinned, LayoutDashboard, Radio, Leaf, Route, ArrowRight } from "lucide-react";
 import { auth } from "@/auth";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
@@ -15,6 +15,12 @@ const PUBLIC_TOOLS = [
     icon: MapPinned,
     title: "Gasolineras",
     description: "Busca las gasolineras más baratas cerca de ti, filtra por combustible y guarda tus favoritas.",
+  },
+  {
+    href: "/en-ruta",
+    icon: Route,
+    title: "Gasolineras en tu ruta",
+    description: "Traza origen y destino y encuentra dónde repostar más barato de camino.",
   },
   {
     href: "/co2",

@@ -18,7 +18,6 @@ const selectClass =
   "h-8 w-full min-w-0 cursor-pointer rounded-lg border border-input bg-card px-2.5 py-1 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-card";
 
 export default function Co2Page() {
-  const [title, setTitle] = useState("");
   const [origin, setOrigin] = useState<GeoPoint | null>(null);
   const [destination, setDestination] = useState<GeoPoint | null>(null);
   const [waypoints, setWaypoints] = useState<(GeoPoint | null)[]>([]);
@@ -83,8 +82,6 @@ export default function Co2Page() {
 
       <div className="h-[420px] md:h-[480px]">
         <StepRoute
-          title={title}
-          onTitleChange={setTitle}
           origin={origin}
           destination={destination}
           waypoints={waypoints}

@@ -26,8 +26,11 @@ export async function POST(request: Request) {
   const geometry: [number, number][] =
     route?.geometry?.coordinates?.map(([lon, lat]: [number, number]) => [lat, lon]) ?? [];
 
+  const seconds = route?.duration;
+
   return Response.json({
     distanceKm: Math.round((meters / 1000) * 10) / 10,
+    durationMin: typeof seconds === "number" ? Math.round(seconds / 60) : null,
     legs,
     geometry,
   });

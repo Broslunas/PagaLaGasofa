@@ -70,6 +70,40 @@ function pinIcon(color: string, label: string) {
   });
 }
 
+const STATION_COLORS = {
+  cheap: "#16a34a", // de las más baratas de la ruta
+  close: "#2563eb", // muy pegada a la ruta, casi sin desvío
+  default: "#ea580c",
+} as const;
+
+// Badge con el precio para puntos de interés seleccionables (p.ej. gasolineras),
+// distinto de los pines grandes de origen/parada/destino (pinIcon). Relleno verde
+// con check si ya está seleccionado como parada; si no, borde de color según
+// colorKind (verde = barata, azul = cerca de la ruta, naranja = resto).
+// ponytail: sin puntero apuntando al punto exacto (simple badge centrado); si hace
+// falta más precisión visual, añadir una punta triangular al div.
+function stationIcon(selected: boolean, priceLabel: string, colorKind: keyof typeof STATION_COLORS) {
+  const accent = STATION_COLORS[colorKind];
+  const bg = selected ? "#16a34a" : "#ffffff";
+  const fg = selected ? "#ffffff" : accent;
+  const border = selected ? "#16a34a" : accent;
+  const label = selected ? `✓ ${priceLabel}` : priceLabel;
+  const width = 16 + label.length * 6.5;
+  const html = `<div style="display:flex;align-items:center;justify-content:center;height:20px;padding:0 6px;border-radius:9999px;background:${bg};border:2px solid ${border};box-shadow:0 1px 4px rgba(0,0,0,.4);font:700 11px system-ui,sans-serif;color:${fg};white-space:nowrap;">${label}</div>`;
+  return L.divIcon({ html, className: "", iconSize: [width, 20], iconAnchor: [width / 2, 10] });
+}
+
+export interface MapStationMarker {
+  id: string;
+  lat: number;
+  lon: number;
+  title: string;
+  priceLabel: string;
+  colorKind: keyof typeof STATION_COLORS;
+  selected: boolean;
+  onClick: () => void;
+}
+
 function MapController({
   points,
   routePolyline,
@@ -127,6 +161,7 @@ export function LocationMap({
   onSelectStopIndex,
   onAddWaypoint,
   onPick,
+  stationMarkers = [],
 }: {
   stops: MapStop[];
   routePolyline?: [number, number][];
@@ -135,6 +170,8 @@ export function LocationMap({
   onSelectStopIndex?: (index: number) => void;
   onAddWaypoint?: () => void;
   onPick?: (index: number, point: GeoPoint) => void;
+  /** Puntos de interés seleccionables aparte de los stops de la ruta (p.ej. gasolineras cercanas). */
+  stationMarkers?: MapStationMarker[];
 }) {
   const [currentStyle, setCurrentStyle] = useState<MapStyleKey>("streets");
   const [openSelector, setOpenSelector] = useState(false);
@@ -322,6 +359,16 @@ export function LocationMap({
               <Marker key={i} position={[stop.point.lat, stop.point.lon]} icon={pinIcon(stop.color, stop.label)} />
             )
         )}
+
+        {stationMarkers.map((m) => (
+          <Marker
+            key={m.id}
+            position={[m.lat, m.lon]}
+            icon={stationIcon(m.selected, m.priceLabel, m.colorKind)}
+            title={m.title}
+            eventHandlers={{ click: m.onClick }}
+          />
+        ))}
 
         {/* Línea de ruta naranja adaptada al estilo */}
         {routePolyline.length > 0 && (
