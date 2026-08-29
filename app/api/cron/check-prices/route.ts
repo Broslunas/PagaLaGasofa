@@ -6,8 +6,9 @@ import { sendPushToUser } from "@/lib/push";
 export const dynamic = "force-dynamic";
 
 // Disparado por un cron externo (Vercel Cron / cron-job.org / GitHub Actions)
-// con "Authorization: Bearer $CRON_SECRET". Solo compara Gasolina 95, mismo
-// límite que ya documenta FavoriteStation.priceAtSave en el schema.
+// con "Authorization: Bearer $CRON_SECRET". Avisa en cualquier cambio de precio
+// (sube o baja) desde el último aviso. Solo compara Gasolina 95, mismo límite
+// que ya documenta FavoriteStation.priceAtSave en el schema.
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -58,19 +59,21 @@ export async function GET(request: Request) {
       if (typeof currentPrice !== "number") continue;
 
       const base = fav.lastNotifiedPrice ?? fav.priceAtSave!;
-      if (currentPrice >= base) continue; // solo avisa si baja más que la última vez avisada
+      if (currentPrice === base) continue; // sin cambio desde el último aviso
+
+      const dropped = currentPrice < base;
 
       await prisma.favoriteStation.update({
         where: { id: fav.id },
         data: { lastNotifiedPrice: currentPrice },
       });
 
-      const title = `Bajó el precio en ${fav.name}`;
+      const title = dropped ? `Bajó el precio en ${fav.name}` : `Subió el precio en ${fav.name}`;
       const body = `Gasolina 95 ahora a ${currentPrice.toFixed(3)} €/L (antes ${base.toFixed(3)} €/L)`;
       const url = `/gasolineras/${fav.stationId}`;
 
       await prisma.notification.create({
-        data: { userId: fav.userId, type: "price_drop", title, body, url },
+        data: { userId: fav.userId, type: dropped ? "price_drop" : "price_rise", title, body, url },
       });
       await sendPushToUser(fav.userId, { title, body, url });
       notified++;
