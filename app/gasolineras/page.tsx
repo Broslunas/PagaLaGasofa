@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FavoriteButton } from "@/components/gasolineras/favorite-button";
+import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
 
 const GasStationsOverviewMap = dynamic(
   () => import("@/components/gasolineras/overview-map"),
@@ -595,9 +596,12 @@ export default function GasolinerasPage() {
                     {/* Header: Brand & Name */}
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {station.brand || "Estación"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <BrandAvatar brand={station.brand} />
+                          <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {station.brand || "Estación"}
+                          </span>
+                        </div>
 
                         <div className="flex items-center gap-1.5">
                           {isCheapest && (

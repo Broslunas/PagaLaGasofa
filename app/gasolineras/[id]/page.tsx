@@ -22,6 +22,7 @@ import type { GasStationDetail } from "@/app/api/gasolineras/[id]/route";
 import { PriceHistoryChart, type HistoryPoint } from "@/components/gasolineras/price-history-chart";
 import { StationScheduleCard } from "@/components/gasolineras/station-schedule-card";
 import { FavoriteButton } from "@/components/gasolineras/favorite-button";
+import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
 
 // Leaflet dynamic import without SSR
 const StationMap = dynamic(
@@ -195,6 +196,7 @@ export default function GasolineraDetailPage({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
+                <BrandAvatar brand={station.brand} className="size-10 text-sm" />
                 <span className="rounded-md bg-accent px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   {station.brand}
                 </span>

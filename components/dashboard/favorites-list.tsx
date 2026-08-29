@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Heart, MapPin, Trash2, ExternalLink, Info, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
 
 export interface FavoriteItem {
   id: string;
@@ -97,9 +98,12 @@ export function FavoritesList({ initialFavorites }: { initialFavorites: Favorite
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {station.brand || "Estación"}
-              </span>
+              <div className="flex items-center gap-2">
+                <BrandAvatar brand={station.brand} className="size-8 text-[11px]" />
+                <span className="inline-block rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {station.brand || "Estación"}
+                </span>
+              </div>
 
               <Button
                 type="button"
