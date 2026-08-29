@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import QRCode from "qrcode";
 import { shortenAddress } from "@/lib/format-address";
-import { buildStaticMap } from "@/lib/static-map";
+import { buildStaticMap, getRoutePoints } from "@/lib/static-map";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -52,33 +52,14 @@ export default async function Image({ params }: { params: Promise<{ shareId: str
   const shortDest = shortenAddress(trip.destination);
 
   // Ruta real (carretera OSRM) si la tenemos guardada, si no una línea recta origen->destino
-  const geometryPoints: [number, number][] = (() => {
-    if (!trip.geometry) return [];
-    try {
-      return JSON.parse(trip.geometry);
-    } catch {
-      return [];
-    }
-  })();
-
-  const hasCoords = trip.originLat != null && trip.originLon != null && trip.destLat != null && trip.destLon != null;
-  const mapPoints = hasCoords
-    ? geometryPoints.length > 0
-      ? geometryPoints.map(([lat, lon]) => ({ lat, lon }))
-      : [
-          { lat: trip.originLat!, lon: trip.originLon! },
-          ...trip.waypoints.map((w) => ({ lat: w.lat, lon: w.lon })),
-          { lat: trip.destLat!, lon: trip.destLon! },
-        ]
-    : [];
-
-  const staticMap = mapPoints.length > 0 ? await buildStaticMap(mapPoints, MAP_W, MAP_H) : null;
+  const routePoints = getRoutePoints(trip);
+  const staticMap = routePoints.length > 0 ? await buildStaticMap(routePoints, MAP_W, MAP_H) : null;
 
   // Simplificamos la polyline para no saturar el SVG en rutas con miles de puntos
   const routeLinePoints = staticMap
-    ? (geometryPoints.length > 0 ? geometryPoints : mapPoints.map((p): [number, number] => [p.lat, p.lon]))
+    ? routePoints
         .filter((_, i, arr) => i % Math.max(1, Math.floor(arr.length / 200)) === 0)
-        .map(([lat, lon]) => staticMap.project(lat, lon))
+        .map((p) => staticMap.project(p.lat, p.lon))
     : [];
 
   return new ImageResponse(

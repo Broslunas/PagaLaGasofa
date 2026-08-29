@@ -24,6 +24,33 @@ function fitZoom(bounds: Bounds, width: number, height: number, padding: number,
   return 2;
 }
 
+type RoutePoint = { lat: number; lon: number };
+
+/** Puntos de la ruta a pintar: la polilínea real de OSRM (trip.geometry) si
+ * la tenemos, si no una línea recta origen → paradas → destino. Usado tanto
+ * por el mapa del ticket (opengraph-image.tsx) como por el del PDF. */
+export function getRoutePoints(trip: {
+  geometry: string | null;
+  originLat: number | null;
+  originLon: number | null;
+  destLat: number | null;
+  destLon: number | null;
+  waypoints: RoutePoint[];
+}): RoutePoint[] {
+  const hasCoords = trip.originLat != null && trip.originLon != null && trip.destLat != null && trip.destLon != null;
+  if (!hasCoords) return [];
+
+  if (trip.geometry) {
+    try {
+      const parsed: [number, number][] = JSON.parse(trip.geometry);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(([lat, lon]) => ({ lat, lon }));
+    } catch {
+      // JSON corrupto/antiguo: cae al fallback de línea recta de abajo
+    }
+  }
+  return [{ lat: trip.originLat!, lon: trip.originLon! }, ...trip.waypoints, { lat: trip.destLat!, lon: trip.destLon! }];
+}
+
 export type StaticMap = {
   tiles: { left: number; top: number; dataUrl: string }[];
   project: (lat: number, lon: number) => { x: number; y: number };

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { CopyLinkButton } from "@/components/ticket/copy-link-button";
 import { DownloadImageButton } from "@/components/ticket/download-image-button";
+import { DownloadPdfButton } from "@/components/ticket/download-pdf-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
 import { PassengerPaidToggle } from "@/components/ticket/passenger-paid-toggle";
 import { WhatsAppShareButton } from "@/components/ticket/whatsapp-share-button";
@@ -17,6 +18,9 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
   const shortOrigin = shortenAddress(trip.origin);
   const shortDest = shortenAddress(trip.destination);
   const stopLabels = ["Origen", ...trip.waypoints.map((_, i) => `Parada ${i + 1}`), "Destino"];
+  // Peajes/extras se reparten a partes iguales (ver calculateTrip en
+  // lib/calculator.ts); el resto del total es combustible.
+  const fuelCost = trip.totalCost - trip.tollsCost - trip.extraCosts;
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-8 md:py-12">
@@ -57,6 +61,7 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
               message={`Ticket del viaje ${trip.origin} → ${trip.destination}:`}
             />
             <DownloadImageButton shareId={shareId} />
+            <DownloadPdfButton shareId={shareId} />
           </div>
         </div>
 
@@ -82,6 +87,22 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
                       {trip.costPerPassenger.toFixed(2)} €
                     </p>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-border/40 px-3.5 py-2.5 text-xs text-muted-foreground">
+                  <span>
+                    Combustible: <span className="font-semibold text-foreground">{fuelCost.toFixed(2)} €</span>
+                  </span>
+                  {trip.tollsCost > 0 && (
+                    <span>
+                      Peajes: <span className="font-semibold text-foreground">{trip.tollsCost.toFixed(2)} €</span>
+                    </span>
+                  )}
+                  {trip.extraCosts > 0 && (
+                    <span>
+                      Extras: <span className="font-semibold text-foreground">{trip.extraCosts.toFixed(2)} €</span>
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 sm:gap-3">
