@@ -3,12 +3,14 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
 import {
   PROVINCES,
   FUEL_TYPES,
   findClosestProvince,
   getDistanceKm,
 } from "@/lib/provinces";
+import { isOpenNow } from "@/lib/opening-hours";
 import {
   MapPin,
   Clock,
@@ -24,9 +26,11 @@ import {
   Compass,
   ChevronDown,
   Map as MapIcon,
+  Heart,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FavoriteButton } from "@/components/gasolineras/favorite-button";
 
 const GasStationsOverviewMap = dynamic(
@@ -66,6 +70,7 @@ interface GasStation {
 const ITEMS_PER_PAGE = 24;
 
 export default function GasolinerasPage() {
+  const { data: session } = useSession();
   const [selectedProvince, setSelectedProvince] = useState("28"); // Madrid por defecto
   const [selectedFuel, setSelectedFuel] = useState<string>("gasolina95");
   const [stations, setStations] = useState<GasStation[]>([]);
@@ -74,6 +79,14 @@ export default function GasolinerasPage() {
   const [updatedAt, setUpdatedAt] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showMap, setShowMap] = useState(true);
+
+  // Filtros adicionales
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedFuelsFilter, setSelectedFuelsFilter] = useState<Set<string>>(new Set());
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [openNowOnly, setOpenNowOnly] = useState(false);
 
   // User location state
   const [userLocation, setUserLocation] = useState<{
@@ -117,6 +130,22 @@ export default function GasolinerasPage() {
         .catch(() => {});
     }
   }, [requestLocation]);
+
+  // Carga los stationId favoritos del usuario una vez, para el filtro "Solo favoritas"
+  // y para que el corazón de cada card arranque en el estado real (antes siempre nacía vacío).
+  useEffect(() => {
+    if (!session?.user) return;
+    let ignore = false;
+    fetch("/api/favorites")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((favs: { stationId: string }[]) => {
+        if (!ignore) setFavoriteIds(new Set(favs.map((f) => f.stationId)));
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [session?.user]);
 
   useEffect(() => {
     let ignore = false;
@@ -168,6 +197,34 @@ export default function GasolinerasPage() {
       );
     }
 
+    if (showFavoritesOnly) {
+      list = list.filter((s) => favoriteIds.has(s.id));
+    }
+
+    if (selectedFuelsFilter.size > 0) {
+      list = list.filter((s) =>
+        [...selectedFuelsFilter].some(
+          (f) => typeof s.prices[f as keyof typeof s.prices] === "number"
+        )
+      );
+    }
+
+    const min = parseFloat(priceMin);
+    const max = parseFloat(priceMax);
+    if (!isNaN(min) || !isNaN(max)) {
+      list = list.filter((s) => {
+        const p = s.prices[selectedFuel as keyof typeof s.prices];
+        if (typeof p !== "number") return false;
+        if (!isNaN(min) && p < min) return false;
+        if (!isNaN(max) && p > max) return false;
+        return true;
+      });
+    }
+
+    if (openNowOnly) {
+      list = list.filter((s) => isOpenNow(s.schedule));
+    }
+
     // Sort by price ASC, then distance ASC
     return [...list].sort((a, b) => {
       const pA = a.prices[selectedFuel as keyof typeof a.prices] ?? Infinity;
@@ -182,7 +239,18 @@ export default function GasolinerasPage() {
       const dB = b.distanceKm ?? Infinity;
       return dA - dB;
     });
-  }, [stations, searchQuery, userLocation, selectedFuel]);
+  }, [
+    stations,
+    searchQuery,
+    userLocation,
+    selectedFuel,
+    favoriteIds,
+    showFavoritesOnly,
+    selectedFuelsFilter,
+    priceMin,
+    priceMax,
+    openNowOnly,
+  ]);
 
   const cheapestPrice = useMemo(() => {
     const validPrices = sortedAndFilteredStations
@@ -349,6 +417,81 @@ export default function GasolinerasPage() {
                 </div>
               </div>
             </div>
+
+            {/* Extra filters row */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border/50 pt-4">
+              {session?.user && (
+                <label className="flex items-center gap-2 text-xs font-medium">
+                  <Checkbox
+                    checked={showFavoritesOnly}
+                    onCheckedChange={(v) => {
+                      setShowFavoritesOnly(v === true);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <Heart className="size-3.5 text-rose-500" />
+                  Solo favoritas
+                </label>
+              )}
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-muted-foreground">Combustibles:</span>
+                {FUEL_TYPES.map((f) => (
+                  <label key={f.id} className="flex items-center gap-1.5 text-xs">
+                    <Checkbox
+                      checked={selectedFuelsFilter.has(f.id)}
+                      onCheckedChange={(v) => {
+                        setSelectedFuelsFilter((prev) => {
+                          const next = new Set(prev);
+                          v === true ? next.add(f.id) : next.delete(f.id);
+                          return next;
+                        });
+                        setCurrentPage(1);
+                      }}
+                    />
+                    {f.short}
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-medium text-muted-foreground">Precio:</span>
+                <Input
+                  type="number"
+                  step="0.001"
+                  placeholder="Mín €"
+                  value={priceMin}
+                  onChange={(e) => {
+                    setPriceMin(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 w-20 rounded-lg text-xs"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="number"
+                  step="0.001"
+                  placeholder="Máx €"
+                  value={priceMax}
+                  onChange={(e) => {
+                    setPriceMax(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 w-20 rounded-lg text-xs"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-medium">
+                <Checkbox
+                  checked={openNowOnly}
+                  onCheckedChange={(v) => {
+                    setOpenNowOnly(v === true);
+                    setCurrentPage(1);
+                  }}
+                />
+                Abierto ahora
+              </label>
+            </div>
           </div>
 
           {/* Interactive Overview Map */}
@@ -463,6 +606,7 @@ export default function GasolinerasPage() {
                             </span>
                           )}
                           <FavoriteButton
+                            key={`${station.id}:${favoriteIds.has(station.id)}`}
                             station={{
                               id: station.id,
                               name: station.name,
@@ -474,6 +618,14 @@ export default function GasolinerasPage() {
                               lat: station.lat,
                               lng: station.lng,
                               priceAtSave: station.prices.gasolina95,
+                            }}
+                            initialIsFavorite={favoriteIds.has(station.id)}
+                            onToggle={(isFav) => {
+                              setFavoriteIds((prev) => {
+                                const next = new Set(prev);
+                                isFav ? next.add(station.id) : next.delete(station.id);
+                                return next;
+                              });
                             }}
                             size="icon-xs"
                             className="size-7"

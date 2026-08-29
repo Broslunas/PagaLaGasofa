@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
   MapPin,
@@ -60,6 +61,7 @@ export default function GasolineraDetailPage({
   const { id } = use(params);
   const searchParams = useSearchParams();
   const provincia = searchParams.get("provincia") || "";
+  const { data: session, status: sessionStatus } = useSession();
 
   const [station, setStation] = useState<GasStationDetail | null>(null);
   const [updatedAt, setUpdatedAt] = useState("");
@@ -68,6 +70,25 @@ export default function GasolineraDetailPage({
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [historyDays, setHistoryDays] = useState<number>(30);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoaded, setFavoriteLoaded] = useState(false);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
+    let ignore = false;
+    fetch(`/api/favorites/${id}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!ignore) setIsFavorite(!!json.isFavorite);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) setFavoriteLoaded(true);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [id, sessionStatus]);
 
   useEffect(() => {
     let ignore = false;
@@ -187,6 +208,8 @@ export default function GasolineraDetailPage({
                   {station.name}
                 </h1>
                 <FavoriteButton
+                  key={favoriteLoaded ? "loaded" : "loading"}
+                  initialIsFavorite={isFavorite}
                   station={{
                     id: station.id,
                     name: station.name,
