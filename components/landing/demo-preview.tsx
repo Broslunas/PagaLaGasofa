@@ -118,7 +118,7 @@ export function DemoPreview() {
             </div>
 
             <div className="pt-2">
-              <Button size="lg" render={<Link href="/app" />} nativeButton={false}>
+              <Button size="lg" render={<Link href="/viaje" />} nativeButton={false}>
                 Probar el calculador
                 <ArrowRight />
               </Button>

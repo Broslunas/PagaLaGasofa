@@ -14,3 +14,17 @@ export function co2KgForLiters(liters: number, fuelType?: string | null): number
   const factor = CO2_FACTORS_KG_PER_LITER[fuelType ?? ""] ?? CO2_FACTORS_KG_PER_LITER[DEFAULT_FUEL_TYPE];
   return liters * factor;
 }
+
+// Misma lógica de ida/vuelta que lib/calculator.ts (roundTripFactor), pero sin
+// reparto entre pasajeros — solo distancia total, litros consumidos y CO2.
+export function co2ForTrip(input: {
+  legsKm: number[];
+  isRoundTrip: boolean;
+  consumptionL100: number;
+  fuelType?: string | null;
+}): { totalKm: number; liters: number; co2Kg: number } {
+  const oneWayKm = input.legsKm.reduce((a, b) => a + b, 0);
+  const totalKm = oneWayKm * (input.isRoundTrip ? 2 : 1);
+  const liters = (totalKm / 100) * input.consumptionL100;
+  return { totalKm, liters, co2Kg: co2KgForLiters(liters, input.fuelType) };
+}

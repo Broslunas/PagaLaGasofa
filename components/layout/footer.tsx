@@ -10,8 +10,8 @@ export function Footer() {
           PagaLaGasofa
         </Link>
         <nav className="flex items-center gap-4">
-          <Link href="/app" className="hover:text-foreground">
-            Calculadora
+          <Link href="/viaje" className="hover:text-foreground">
+            Viaje
           </Link>
           <Link href="#como-funciona" className="hover:text-foreground">
             Cómo funciona

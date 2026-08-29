@@ -24,7 +24,7 @@ export function FinalCTA() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button size="lg" render={<Link href="/app" />} nativeButton={false}>
+            <Button size="lg" render={<Link href="/viaje" />} nativeButton={false}>
               <Fuel />
               Calcular mi viaje gratis
               <ArrowRight />

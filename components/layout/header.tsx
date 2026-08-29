@@ -24,10 +24,10 @@ export function Header() {
 
         <nav className="hidden items-center gap-4 sm:flex">
           <Link
-            href="/app"
+            href="/viaje"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Calculadora
+            Viaje
           </Link>
           <Link
             href="/gasolineras"
@@ -56,11 +56,11 @@ export function Header() {
       {open && (
         <nav className="absolute inset-x-0 top-full flex flex-col gap-1 border-t border-border/50 bg-background/95 px-2 py-3 shadow-lg backdrop-blur-md sm:hidden">
           <Link
-            href="/app"
+            href="/viaje"
             className="rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setOpen(false)}
           >
-            Calculadora
+            Viaje
           </Link>
           <Link
             href="/gasolineras"
