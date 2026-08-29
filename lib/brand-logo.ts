@@ -34,15 +34,42 @@ const BRAND_LOGO_FILES: Record<string, string> = {
   MOLGAS: "molgas.png",
   NATURGY: "naturgy.png",
   ESCLATOIL: "esclatoil.png",
+  // Canarias / Tenerife
+  TGAS: "tgas.png",
+  PCAN: "pcan.png",
+  "OCÉANO": "oceano.png",
+  OCEANO: "oceano.png",
+  CANARY: "canary.webp",
+  GMOIL: "gmoil.png",
+  "GM OIL": "gmoil.png",
+  GM: "gmoil.png",
+  H2EXAGON: "h2exagon.png",
+  H2GO: "h2exagon.png",
+  // Nacionales adicionales
+  GASEXPRESS: "gasexpress.svg",
+  HAM: "ham.png",
+  PETROCAT: "petrocat.jpg",
+  AUTONETOIL: "autonetoil.svg",
+  IBERDOEX: "iberdoex.svg",
+  "LOW COST": "lowcost.png",
+  LOW: "lowcost.png",
 };
 
 export function getBrandLogoUrl(brand: string): string | null {
   const normalized = brand.trim().toUpperCase();
   if (BRAND_LOGO_FILES[normalized]) return `/brands/${BRAND_LOGO_FILES[normalized]}`;
-  // Muchas estaciones llevan la marca + nombre propio de la instalación, p.ej.
-  // "DISA MAYORAZGO", "BP TACO NORTE", "REPSOL BUTANO" — la primera palabra
-  // ya identifica la marca real, así que también vale como match.
-  const firstWord = normalized.split(/\s+/)[0];
+
+  // Elimina prefijos comunes de instalación ("E.S.", "E.S", "EESS", "E.E.S.S.", "ESTACION DE SERVICIO", etc.)
+  const stripped = normalized
+    .replace(/^(E\.?\s*E\.?\s*S\.?\s*S\.?|E\.?\s*S\.?)\s+/i, "")
+    .replace(/^ESTACI[OÓ]N\s+(DE\s+SERVICIO\s+)?/i, "")
+    .trim();
+  if (BRAND_LOGO_FILES[stripped]) return `/brands/${BRAND_LOGO_FILES[stripped]}`;
+
+  // Match por primera palabra del nombre ya limpio ("DISA MAYORAZGO" -> "DISA",
+  // "E.S. OCÉANO SANTA CRUZ" -> "OCÉANO", "TGAS-TU TRÉBOL" -> "TGAS")
+  // Separador: espacios o guiones.
+  const firstWord = stripped.split(/[\s\-]+/)[0];
   const file = BRAND_LOGO_FILES[firstWord];
   return file ? `/brands/${file}` : null;
 }
