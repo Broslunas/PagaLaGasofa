@@ -23,6 +23,7 @@ import { PriceHistoryChart, type HistoryPoint } from "@/components/gasolineras/p
 import { StationScheduleCard } from "@/components/gasolineras/station-schedule-card";
 import { FavoriteButton } from "@/components/gasolineras/favorite-button";
 import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
+import { formatMitecoDate } from "@/lib/format-date";
 
 // Leaflet dynamic import without SSR
 const StationMap = dynamic(
@@ -267,7 +268,7 @@ export default function GasolineraDetailPage({
                 {updatedAt && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3.5 w-3.5 text-primary" />
-                    {updatedAt}
+                    {formatMitecoDate(updatedAt)}
                   </span>
                 )}
               </div>

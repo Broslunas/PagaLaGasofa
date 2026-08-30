@@ -11,6 +11,7 @@ import {
   getDistanceKm,
 } from "@/lib/provinces";
 import { isOpenNow } from "@/lib/opening-hours";
+import { formatMitecoDate } from "@/lib/format-date";
 import {
   MapPin,
   Clock,
@@ -547,7 +548,7 @@ export default function GasolinerasPage() {
             <div className="flex items-center gap-1.5">
               <Clock className="size-3.5 text-primary" />
               <span>
-                Actualización: <strong className="text-foreground">{updatedAt || "Reciente"}</strong>
+                Actualización: <strong className="text-foreground">{updatedAt ? formatMitecoDate(updatedAt) : "Reciente"}</strong>
               </span>
             </div>
             <span className="text-border">|</span>
