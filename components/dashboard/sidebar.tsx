@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Car, Route, Heart, BarChart3, Radio, Menu, X } from "lucide-react";
+import { LayoutDashboard, Car, Route, Heart, BarChart3, Radio, Settings, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/favoritos", label: "Gasolineras Favoritas", icon: Heart },
   { href: "/dashboard/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { href: "/dashboard/compartir", label: "Compartir ubicación", icon: Radio },
+  { href: "/dashboard/ajustes", label: "Ajustes", icon: Settings },
 ];
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {

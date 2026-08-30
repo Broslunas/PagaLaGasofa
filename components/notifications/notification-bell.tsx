@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Bell, BellRing, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { subscribeToPush } from "@/lib/push";
 
 type Notification = {
   id: string;
@@ -14,33 +15,6 @@ type Notification = {
   read: boolean;
   createdAt: string;
 };
-
-// applicationServerKey de pushManager.subscribe necesita Uint8Array, la VAPID
-// pública llega en base64url — conversión estándar, no hay helper en el navegador.
-function urlBase64ToUint8Array(base64: string) {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64Safe);
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
-}
-
-async function enablePush() {
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return;
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!publicKey) return;
-
-  const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey),
-  });
-  await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription.toJSON()),
-  });
-}
 
 export function NotificationBell() {
   const { data: session } = useSession();
@@ -127,7 +101,7 @@ export function NotificationBell() {
             <button
               type="button"
               onClick={() => {
-                enablePush();
+                subscribeToPush();
                 setShowPushBanner(false);
               }}
               className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-2 text-left text-xs font-medium text-primary hover:bg-primary/10"

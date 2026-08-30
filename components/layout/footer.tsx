@@ -16,6 +16,18 @@ export function Footer() {
           <Link href="#como-funciona" className="hover:text-foreground">
             Cómo funciona
           </Link>
+          <Link href="/legal/privacidad" className="hover:text-foreground">
+            Privacidad
+          </Link>
+          <Link href="/legal/cookies" className="hover:text-foreground">
+            Cookies
+          </Link>
+          <Link href="/legal/terminos" className="hover:text-foreground">
+            Términos
+          </Link>
+          <Link href="/legal/aviso-legal" className="hover:text-foreground">
+            Aviso legal
+          </Link>
         </nav>
         <p>
           © {new Date().getFullYear()} PagaLaGasofa · Creado por{" "}
