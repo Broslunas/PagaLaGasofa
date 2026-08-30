@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { RawStation, transformRawStation } from "@/app/api/gasolineras/[id]/route";
+import { formatMiteceoDate as formatDate } from "@/lib/gas-prices";
+import { prisma } from "@/lib/prisma";
 
 export const revalidate = 3600; // cache 1 hour
 
 const ALLOWED_DAYS = [7, 14, 30, 60, 90];
-
-function formatDate(d: Date): string {
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-}
 
 export async function GET(
   request: Request,
@@ -19,7 +14,17 @@ export async function GET(
   const params = await props.params;
   const stationId = params.id;
   const { searchParams } = new URL(request.url);
-  const provinceId = searchParams.get("provincia");
+  // Provincia por query param o, si falta, la que ya tengamos cacheada en
+  // StationInfo — mismo truco que app/api/gasolineras/[id]/route.ts para
+  // no caer al fallback nacional completo en cada fecha sin cachear.
+  let provinceId = searchParams.get("provincia");
+  if (!provinceId) {
+    const cached = await prisma.stationInfo.findUnique({
+      where: { stationId },
+      select: { provinceId: true },
+    });
+    provinceId = cached?.provinceId ?? null;
+  }
 
   const rawDays = parseInt(searchParams.get("dias") || "30", 10);
   const days = ALLOWED_DAYS.includes(rawDays) ? rawDays : 30;
@@ -46,6 +51,25 @@ export async function GET(
 
   try {
     const requests = dates.map(async ({ label, dateStr }) => {
+      // Fecha pasada ya cerrada en DB -> cero llamadas a MITECO.
+      const cached = await prisma.stationPriceSnapshot.findUnique({
+        where: { stationId_date: { stationId, date: dateStr } },
+      });
+      if (cached) {
+        const {
+          gasolina95, gasolina95Premium, gasolina98, diesel, dieselPremium,
+          dieselB, glp, gnc, gnl, adblue, bioetanol, biodiesel, dieselRenovable, hidrogeno,
+        } = cached;
+        return {
+          date: label,
+          rawDate: dateStr,
+          prices: {
+            gasolina95, gasolina95Premium, gasolina98, diesel, dieselPremium,
+            dieselB, glp, gnc, gnl, adblue, bioetanol, biodiesel, dieselRenovable, hidrogeno,
+          },
+        };
+      }
+
       try {
         const url = provinceId
           ? `https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestresHist/FiltroProvincia/${dateStr}/${provinceId}`
@@ -59,6 +83,17 @@ export async function GET(
         if (!raw) return null;
 
         const transformed = transformRawStation(raw);
+
+        // Auto-relleno: guarda esta fecha para no volver a pedirla nunca más
+        // (si es hoy, el cron de sync-stations la sobreescribirá más tarde).
+        await prisma.stationPriceSnapshot
+          .upsert({
+            where: { stationId_date: { stationId, date: dateStr } },
+            create: { stationId, date: dateStr, ...transformed.prices },
+            update: transformed.prices,
+          })
+          .catch(() => {});
+
         return {
           date: label,
           rawDate: dateStr,

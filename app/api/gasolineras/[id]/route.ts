@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchProvinceRawList } from "@/lib/gas-prices";
+import { prisma } from "@/lib/prisma";
 
 export const revalidate = 1800; // cache 30 mins
 
@@ -121,7 +122,17 @@ export async function GET(
   const params = await props.params;
   const stationId = params.id;
   const { searchParams } = new URL(request.url);
-  const provinceId = searchParams.get("provincia");
+  // Provincia por query param (viene de los links del listado) o, si falta,
+  // la que ya tengamos cacheada en StationInfo — evita el fallback nacional
+  // completo (~12k estaciones) para saber a qué provincia preguntarle a MITECO.
+  let provinceId = searchParams.get("provincia");
+  if (!provinceId) {
+    const cached = await prisma.stationInfo.findUnique({
+      where: { stationId },
+      select: { provinceId: true },
+    });
+    provinceId = cached?.provinceId ?? null;
+  }
 
   try {
     let rawList: RawStation[];

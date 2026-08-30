@@ -1,5 +1,14 @@
 import type { RawStation } from "@/app/api/gasolineras/[id]/route";
 
+// dd-mm-yyyy — formato que exige el endpoint histórico de MITECO. Compartido
+// por historico/route.ts y el cron de sync-stations para no duplicarlo.
+export function formatMiteceoDate(d: Date): string {
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 // Fetch compartido por provincia — reusado por app/api/gasolineras/[id] y por
 // el cron de precios, así una pasada del cron hace 1 llamada a MITECO por
 // provincia (no una por favorito).

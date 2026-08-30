@@ -232,3 +232,54 @@ model PushSubscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// Info de cada gasolinera de España que casi nunca cambia (nombre, dirección,
+// horario, coords...). Sincronizada a diario por app/api/cron/sync-stations
+// para no tener que pedirle el listado nacional completo a MITECO en cada
+// visita a /gasolineras/[id] solo para sacar estos campos.
+model StationInfo {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  stationId    String   @unique // IDEESS
+  name         String
+  brand        String
+  address      String
+  postalCode   String
+  city         String
+  municipality String
+  province     String
+  provinceId   String
+  schedule     String
+  margin       String
+  saleType     String
+  remission    String
+  lat          Float
+  lng          Float
+  syncedAt     DateTime @updatedAt
+}
+
+// Snapshot de precios de una estación en un día concreto. Una vez pasado el
+// día es dato cerrado e inmutable (MITECO no lo cambia con retroactividad),
+// así que sirve de histórico permanente: si ya está en DB no hace falta
+// volver a pedirle esa fecha a MITECO nunca más.
+model StationPriceSnapshot {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  stationId         String
+  date              String // dd-mm-yyyy, mismo formato que ya usa historico/route.ts
+  gasolina95        Float?
+  gasolina95Premium Float?
+  gasolina98        Float?
+  diesel            Float?
+  dieselPremium     Float?
+  dieselB           Float?
+  glp               Float?
+  gnc               Float?
+  gnl               Float?
+  adblue            Float?
+  bioetanol         Float?
+  biodiesel         Float?
+  dieselRenovable   Float?
+  hidrogeno         Float?
+  createdAt         DateTime @default(now())
+
+  @@unique([stationId, date])
+}
