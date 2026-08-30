@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { shortenAddress } from "@/lib/format-address";
 import { buildStops } from "@/lib/stops";
-import { ArrowRight, Fuel, Loader2, Receipt, Users, Route as RouteIcon } from "lucide-react";
+import { buildMapsHref } from "@/lib/maps-link";
+import { ArrowRight, ExternalLink, Fuel, Loader2, Receipt, Users, Route as RouteIcon } from "lucide-react";
 import type { CalculatorResult } from "@/lib/calculator";
 import type { Passenger } from "@/components/calculator/calculator";
 import type { GeoPoint } from "@/components/calculator/location-field";
@@ -55,6 +56,8 @@ export function StepSummary({
 }) {
   const shortOrigin = shortenAddress(origin?.label ?? "Origen");
   const shortDest = shortenAddress(destination?.label ?? "Destino");
+  const mapsHref =
+    origin && destination ? buildMapsHref(origin, waypoints.filter((w): w is GeoPoint => !!w), destination) : null;
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col gap-4 overflow-y-auto pr-1 md:flex-row md:items-stretch">
@@ -85,9 +88,22 @@ export function StepSummary({
               </div>
             )}
           </div>
-          <span className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary shrink-0">
-            {distanceKm.toFixed(1)} km {isRoundTrip ? "· I/V" : ""}
-          </span>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <span className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+              {distanceKm.toFixed(1)} km {isRoundTrip ? "· I/V" : ""}
+            </span>
+            {mapsHref && (
+              <a
+                href={mapsHref}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink size={11} />
+                Abrir en Maps
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Tarjeta de costes principales */}

@@ -21,11 +21,13 @@ export async function POST(request: Request) {
   const results = await Promise.allSettled(provinceIds.map((id) => fetchProvinceRawList(id)));
   const updatedAts: string[] = [];
   const stations: GasStation[] = [];
-  for (const r of results) {
-    if (r.status !== "fulfilled") continue;
+  results.forEach((r, i) => {
+    if (r.status !== "fulfilled") return;
     updatedAts.push(r.value.updatedAt);
-    for (const raw of r.value.list) stations.push(rawStationToGasStation(raw));
-  }
+    for (const raw of r.value.list) {
+      stations.push({ ...rawStationToGasStation(raw), provinceId: provinceIds[i] });
+    }
+  });
 
   if (results.every((r) => r.status === "rejected")) {
     return NextResponse.json({ error: "No se pudo consultar MITECO" }, { status: 502 });

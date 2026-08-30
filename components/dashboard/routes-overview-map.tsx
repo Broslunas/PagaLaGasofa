@@ -7,6 +7,8 @@ import { Layers, Maximize2, Minimize2, Route } from "lucide-react";
 import { MapContainer, Marker, Popup, Polyline, TileLayer, useMap } from "react-leaflet";
 import Link from "next/link";
 import { MAP_STYLES, MapStyleKey } from "@/components/calculator/location-map";
+import { buildMapsHref } from "@/lib/maps-link";
+import { ExternalLink } from "lucide-react";
 
 export interface UserTripRoute {
   id: string;
@@ -108,10 +110,20 @@ export function RoutesOverviewMap({ trips }: { trips: UserTripRoute[] }) {
 
       const colorScheme = ROUTE_PALETTE[idx % ROUTE_PALETTE.length];
 
+      const mapsHref =
+        trip.originLat != null && trip.originLon != null && trip.destLat != null && trip.destLon != null
+          ? buildMapsHref(
+              { lat: trip.originLat, lon: trip.originLon },
+              (trip.waypoints ?? []).map((w) => ({ lat: w.lat, lon: w.lon })),
+              { lat: trip.destLat, lon: trip.destLon }
+            )
+          : null;
+
       return {
         ...trip,
         polyline,
         color: colorScheme,
+        mapsHref,
       };
     });
   }, [trips]);
@@ -330,12 +342,25 @@ export function RoutesOverviewMap({ trips }: { trips: UserTripRoute[] }) {
                       <p className="text-primary font-semibold text-[11px] mt-1">
                         {route.distanceKm} km · {route.totalCost.toFixed(2)} €
                       </p>
-                      <Link
-                        href={`/t/${route.shareId}`}
-                        className="mt-2 block text-center rounded bg-primary py-1 px-2 text-[11px] font-medium text-primary-foreground hover:opacity-90"
-                      >
-                        Ver ticket
-                      </Link>
+                      <div className="mt-2 flex gap-1.5">
+                        <Link
+                          href={`/t/${route.shareId}`}
+                          className="flex-1 block text-center rounded bg-primary py-1 px-2 text-[11px] font-medium text-primary-foreground hover:opacity-90"
+                        >
+                          Ver ticket
+                        </Link>
+                        {route.mapsHref && (
+                          <a
+                            href={route.mapsHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex flex-1 items-center justify-center gap-1 rounded border border-border/70 py-1 px-2 text-[11px] font-medium text-foreground hover:bg-muted"
+                          >
+                            <ExternalLink size={11} />
+                            Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </Popup>
                 </Marker>
@@ -356,12 +381,25 @@ export function RoutesOverviewMap({ trips }: { trips: UserTripRoute[] }) {
                       <p className="text-primary font-semibold text-[11px] mt-1">
                         {route.distanceKm} km · {route.totalCost.toFixed(2)} €
                       </p>
-                      <Link
-                        href={`/t/${route.shareId}`}
-                        className="mt-2 block text-center rounded bg-primary py-1 px-2 text-[11px] font-medium text-primary-foreground hover:opacity-90"
-                      >
-                        Ver ticket
-                      </Link>
+                      <div className="mt-2 flex gap-1.5">
+                        <Link
+                          href={`/t/${route.shareId}`}
+                          className="flex-1 block text-center rounded bg-primary py-1 px-2 text-[11px] font-medium text-primary-foreground hover:opacity-90"
+                        >
+                          Ver ticket
+                        </Link>
+                        {route.mapsHref && (
+                          <a
+                            href={route.mapsHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex flex-1 items-center justify-center gap-1 rounded border border-border/70 py-1 px-2 text-[11px] font-medium text-foreground hover:bg-muted"
+                          >
+                            <ExternalLink size={11} />
+                            Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </Popup>
                 </Marker>

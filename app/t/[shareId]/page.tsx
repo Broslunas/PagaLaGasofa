@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CopyLinkButton } from "@/components/ticket/copy-link-button";
 import { DownloadImageButton } from "@/components/ticket/download-image-button";
 import { DownloadPdfButton } from "@/components/ticket/download-pdf-button";
+import { OpenMapsButton } from "@/components/ticket/open-maps-button";
 import { TicketMap } from "@/components/ticket/ticket-map";
 import { PassengerPaidToggle } from "@/components/ticket/passenger-paid-toggle";
 import { WhatsAppShareButton } from "@/components/ticket/whatsapp-share-button";
@@ -21,6 +22,8 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
   // Peajes/extras se reparten a partes iguales (ver calculateTrip en
   // lib/calculator.ts); el resto del total es combustible.
   const fuelCost = trip.totalCost - trip.tollsCost - trip.extraCosts;
+  const hasRouteCoords =
+    trip.originLat != null && trip.originLon != null && trip.destLat != null && trip.destLon != null;
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-8 md:py-12">
@@ -62,6 +65,13 @@ export default async function TicketPage({ params }: { params: Promise<{ shareId
             />
             <DownloadImageButton shareId={shareId} />
             <DownloadPdfButton shareId={shareId} />
+            {hasRouteCoords && (
+              <OpenMapsButton
+                origin={{ lat: trip.originLat!, lon: trip.originLon! }}
+                destination={{ lat: trip.destLat!, lon: trip.destLon! }}
+                waypoints={trip.waypoints.map((w) => ({ lat: w.lat, lon: w.lon }))}
+              />
+            )}
           </div>
         </div>
 

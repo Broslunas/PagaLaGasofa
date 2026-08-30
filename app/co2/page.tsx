@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Leaf, TreePine } from "lucide-react";
+import { buildMapsHref } from "@/lib/maps-link";
+import { Leaf, TreePine, Route } from "lucide-react";
 
 const numberField = (v: string) => (v === "" ? 0 : Number(v));
 const KG_CO2_ABSORBED_PER_TREE_YEAR = 21; // aprox., cifra habitual de divulgación
@@ -72,6 +73,8 @@ export default function Co2Page() {
   const legs = legsKm.length > 0 ? legsKm : [distanceKm];
   const { totalKm, liters, co2Kg } = co2ForTrip({ legsKm: legs, isRoundTrip, consumptionL100, fuelType });
   const treesPerYear = co2Kg / KG_CO2_ABSORBED_PER_TREE_YEAR;
+  const mapsHref =
+    origin && destination ? buildMapsHref(origin, waypoints.filter((w): w is GeoPoint => !!w), destination) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-6 md:py-8">
@@ -134,11 +137,22 @@ export default function Co2Page() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-1.5">
               <Leaf size={16} className="text-primary" />
               Resultado
             </CardTitle>
+            {mapsHref && (
+              <a
+                href={mapsHref}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Route size={13} />
+                Abrir ruta en Maps
+              </a>
+            )}
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-3 text-center">
             <div>

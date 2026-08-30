@@ -24,8 +24,10 @@ export async function GET(
   const rawDays = parseInt(searchParams.get("dias") || "30", 10);
   const days = ALLOWED_DAYS.includes(rawDays) ? rawDays : 30;
 
-  // Step sampling for larger ranges to optimize performance
-  const step = days > 60 ? 3 : days > 30 ? 2 : 1;
+  // Sample down to ~10 points max — each point is a separate slow MITECO
+  // fetch (full national/provincial list per day), so more points = more
+  // parallel requests to a slow external API.
+  const step = Math.max(1, Math.ceil(days / 10));
 
   const now = new Date();
   const dates: { label: string; dateStr: string }[] = [];

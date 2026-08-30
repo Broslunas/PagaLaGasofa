@@ -7,6 +7,7 @@ import { type GeoPoint } from "@/components/calculator/location-field";
 import { StepRoute } from "@/components/calculator/step-route";
 import { BrandAvatar } from "@/components/gasolineras/brand-avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { buildMapsHref } from "@/lib/maps-link";
 import { Fuel, MapPin, ExternalLink, Info, Route, Milestone, Clock, Plus, X } from "lucide-react";
 
 const selectClass =
@@ -35,6 +36,7 @@ interface RouteStation {
   brand: string;
   address: string;
   municipality: string;
+  provinceId?: string;
   lat: number;
   lng: number;
   distanceFromRouteKm: number;
@@ -136,6 +138,20 @@ export default function EnRutaPage() {
     };
   }, [routePolyline, fuelType]);
 
+  // Ruta completa con la gasolinera añadida como parada (si aún no lo es).
+  function buildRouteHref(s: RouteStation) {
+    if (!origin || !destination) return `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+    const alreadyStop = waypoints.some((w) => samePoint(w, s.lat, s.lng));
+    const stops = (alreadyStop ? waypoints : [...waypoints, { lat: s.lat, lon: s.lng }]).filter(
+      (w): w is GeoPoint => !!w
+    );
+    return buildMapsHref(origin, stops, destination);
+  }
+
+  // Ruta general: origen -> paradas ya añadidas -> destino (sin forzar ninguna gasolinera).
+  const generalRouteHref =
+    origin && destination ? buildMapsHref(origin, waypoints.filter((w): w is GeoPoint => !!w), destination) : null;
+
   const routePrices = stations
     .map((s) => s.prices[fuelType as keyof typeof s.prices])
     .filter((p): p is number => p != null);
@@ -185,16 +201,29 @@ export default function EnRutaPage() {
       </div>
 
       {routePolyline.length >= 2 && (
-        <div className="flex flex-wrap gap-4 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm">
-          <span className="flex items-center gap-1.5">
-            <Milestone size={15} className="text-primary" />
-            {distanceKm.toFixed(1)} km
-          </span>
-          {durationMin > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm">
+          <div className="flex flex-wrap gap-4">
             <span className="flex items-center gap-1.5">
-              <Clock size={15} className="text-primary" />
-              {formatDuration(durationMin)}
+              <Milestone size={15} className="text-primary" />
+              {distanceKm.toFixed(1)} km
             </span>
+            {durationMin > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Clock size={15} className="text-primary" />
+                {formatDuration(durationMin)}
+              </span>
+            )}
+          </div>
+          {generalRouteHref && (
+            <a
+              href={generalRouteHref}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Route size={13} />
+              Abrir ruta en Maps
+            </a>
           )}
         </div>
       )}
@@ -259,12 +288,12 @@ export default function EnRutaPage() {
                         {price ? `${price.toFixed(3)} €/L` : "N/D"}
                       </span>
                       <div className="flex items-center gap-2 text-xs">
-                        <Link href={`/gasolineras/${s.id}`} className="flex items-center gap-1 text-primary hover:underline">
+                        <Link href={`/gasolineras/${s.id}${s.provinceId ? `?provincia=${s.provinceId}` : ""}`} className="flex items-center gap-1 text-primary hover:underline">
                           <Info size={12} />
                           Detalles
                         </Link>
                         <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`}
+                          href={buildRouteHref(s)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center gap-1 text-muted-foreground hover:text-foreground"

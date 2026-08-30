@@ -22,6 +22,7 @@ export interface GasStation {
   city: string;
   municipality: string;
   province: string;
+  provinceId?: string;
   schedule: string;
   lat: number;
   lng: number;
