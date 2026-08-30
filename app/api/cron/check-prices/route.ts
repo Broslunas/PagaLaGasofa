@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { fetchProvinceRawList } from "@/lib/gas-prices";
 import { transformRawStation } from "@/app/api/gasolineras/[id]/route";
-import { sendPushToUser } from "@/lib/push";
+import { sendPushToUser } from "@/lib/push-server";
 
 export const dynamic = "force-dynamic";
 
-// Disparado por un cron externo (Vercel Cron / cron-job.org / GitHub Actions)
+// Disparado por un cron externo (N8N)
 // con "Authorization: Bearer $CRON_SECRET". Avisa en cualquier cambio de precio
 // (sube o baja) desde el último aviso. Solo compara Gasolina 95, mismo límite
 // que ya documenta FavoriteStation.priceAtSave en el schema.
