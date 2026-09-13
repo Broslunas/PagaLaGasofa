@@ -1,34 +1,44 @@
 import Link from "next/link";
-import { ArrowRight, Fuel, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 
 export function FinalCTA() {
   return (
-    <section className="px-4 py-20 md:py-28">
-      <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/15 via-card/80 to-card p-8 text-center shadow-2xl md:p-14">
-        <div className="absolute -right-16 -top-16 size-64 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 size-64 rounded-full bg-primary/10 blur-3xl" />
+    <section className="relative px-4 py-24 md:py-32">
+      <div className="mx-auto max-w-5xl">
+        {/* Double-Bezel Hardware Frame */}
+        <div className="rounded-[2.5rem] p-2 ring-1 ring-primary/25 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent shadow-2xl shadow-primary/10">
+          <div className="relative overflow-hidden rounded-[calc(2.5rem-0.5rem)] border border-border/60 bg-card/90 px-6 py-14 text-center backdrop-blur-md sm:px-12 md:py-20">
+            {/* Subtle background glow */}
+            <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-primary/15 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-24 size-80 rounded-full bg-primary/10 blur-3xl" />
 
-        <div className="relative z-10 mx-auto max-w-xl space-y-6">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/20 px-3 py-1 text-xs font-semibold text-primary">
-            <Sparkles size={13} />
-            Listo para el fin de semana
-          </div>
+            <div className="relative z-10 mx-auto max-w-xl space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-mono uppercase tracking-[0.18em] text-primary">
+                <Sparkles className="size-3.5" />
+                Listo para la carretera
+              </div>
 
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl text-foreground">
-            ¿Planeando escapada con amigos?
-          </h2>
+              <h2 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl text-foreground text-balance">
+                ¿Planeando escapada con amigos?
+              </h2>
 
-          <p className="text-muted-foreground md:text-base">
-            Calcula el coste de tu ruta en segundos y ten el link de cobro antes de arrancar el motor.
-          </p>
+              <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
+                Calcula el coste de tu ruta en segundos y ten el link de cobro antes de arrancar el motor.
+              </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button size="lg" render={<Link href="/viaje" />} nativeButton={false}>
-              <Fuel />
-              Calcular mi viaje gratis
-              <ArrowRight />
-            </Button>
+              {/* Button-in-Button CTA */}
+              <div className="flex justify-center pt-2">
+                <Link
+                  href="/viaje"
+                  className="group inline-flex items-center gap-3.5 rounded-full bg-primary px-7 py-4 text-base font-semibold text-primary-foreground shadow-xl shadow-primary/30 transition-all duration-300 hover:bg-primary/95 hover:shadow-primary/45 active:scale-[0.98]"
+                >
+                  <span>Calcular mi viaje</span>
+                  <span className="flex size-8 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-0.5 dark:bg-white/20">
+                    <ArrowUpRight className="size-4" />
+                  </span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

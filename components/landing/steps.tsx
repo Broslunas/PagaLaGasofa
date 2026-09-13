@@ -1,63 +1,95 @@
-import { Navigation, Calculator, Share2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { MapPin, Gauge, Share2, Check, ArrowRight } from "lucide-react";
 
-const steps = [
+const MILESTONES = [
   {
-    number: "01",
-    icon: Navigation,
-    title: "Pon origen y destino",
-    description: "Autocompletamos las ciudades y calculamos la distancia exacta por carretera automáticamente.",
+    action: "Define la ruta",
+    detail: "Geocodificación instantánea. Detectamos el kilometraje real de carretera sin que abras Maps.",
+    icon: MapPin,
+    preview: {
+      badge: "Madrid → Valencia",
+      metric: "355 km",
+      sub: "Cálculo vial directo",
+    },
   },
   {
-    number: "02",
-    icon: Calculator,
-    title: "Añade coche y pasajeros",
-    description: "Indica consumo de tu coche (o usa nuestra estimación por IA), precio de gasolina y peajes.",
+    action: "Ajusta consumo y personas",
+    detail: "Introduce tu consumo medio o déjalo en manos de nuestra IA. Añade peajes con un clic.",
+    icon: Gauge,
+    preview: {
+      badge: "4 ocupantes",
+      metric: "6,2 L / 100km",
+      sub: "Gasolina 95 oficial",
+    },
   },
   {
-    number: "03",
+    action: "Envía el ticket al grupo",
+    detail: "Genera un enlace web público. Cada amigo entra, ve su importe y marcas los Bizums recibidos.",
     icon: Share2,
-    title: "Comparte el enlace",
-    description: "Generamos un ticket público. Cada amigo entra, ve su importe y marcas los Bizums recibidos.",
+    preview: {
+      badge: "Ticket listo",
+      metric: "23,08 € / persona",
+      sub: "Sin crear cuenta",
+    },
   },
 ];
 
 export function Steps() {
   return (
-    <section id="como-funciona" className="px-4 py-20 md:py-28">
-      <div className="mx-auto max-w-5xl">
+    <section id="como-funciona" className="relative px-4 py-24 md:py-32">
+      <div className="mx-auto max-w-6xl">
+        {/* Section Header: stacked vertically, no split header */}
         <div className="mx-auto mb-16 max-w-2xl text-center">
-          <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            Paso a paso
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-            En menos de 30 segundos
+          <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl text-foreground">
+            De la idea al Bizum en segundos
           </h2>
-          <p className="mt-2 text-muted-foreground">
-            Olvídate de abrir Google Maps, la calculadora y hacer cuentas mentales en la gasolinera.
+          <p className="mt-3 text-base text-muted-foreground md:text-lg">
+            Sin hojas de cálculo ni peleas por quién pagó el último depósito.
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {steps.map((step) => {
-            const Icon = step.icon;
+        {/* Milestone Route Architecture */}
+        <div className="relative grid gap-6 md:grid-cols-3">
+          {/* Subtle connecting road line in desktop */}
+          <div className="pointer-events-none absolute left-0 right-0 top-1/2 hidden h-[2px] -translate-y-12 bg-border/70 md:block" />
+
+          {MILESTONES.map((item) => {
+            const Icon = item.icon;
             return (
-              <Card key={step.number} className="relative overflow-hidden border-border/60 bg-card/60 transition-all hover:border-primary/40 hover:shadow-lg">
-                <div className="absolute right-4 top-4 font-heading text-4xl font-black text-muted/30">
-                  {step.number}
-                </div>
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon size={22} />
+              <div
+                key={item.action}
+                className="group relative flex flex-col justify-between rounded-3xl p-1.5 ring-1 ring-border/50 bg-muted/20 transition-all duration-300 hover:ring-primary/40 hover:shadow-lg hover:shadow-primary/5"
+              >
+                <div className="flex h-full flex-col justify-between rounded-[calc(1.5rem-0.375rem)] border border-border/40 bg-card p-6 shadow-sm">
+                  <div>
+                    {/* Icon + Micro badge */}
+                    <div className="mb-6 flex items-center justify-between">
+                      <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 transition-transform duration-300 group-hover:scale-110">
+                        <Icon className="size-5" />
+                      </div>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-[11px] font-mono font-medium text-muted-foreground">
+                        <Check className="size-3 text-emerald-500" />
+                        {item.preview.badge}
+                      </span>
+                    </div>
+
+                    {/* Action Title & Detail */}
+                    <h3 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+                      {item.action}
+                    </h3>
+                    <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                      {item.detail}
+                    </p>
                   </div>
-                  <h3 className="font-heading text-lg font-semibold text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {step.description}
-                  </p>
-                </CardContent>
-              </Card>
+
+                  {/* Micro Visual Card inside core */}
+                  <div className="mt-6 rounded-2xl border border-border/40 bg-muted/20 p-3.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-foreground">{item.preview.metric}</span>
+                      <span className="text-[11px] text-muted-foreground font-mono">{item.preview.sub}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>

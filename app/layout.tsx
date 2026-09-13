@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pagalagasofa.broslunas.com"),
-  title: "PagaLaGasofa — Reparte la gasolina entre amigos",
+  title: "PagaLaGasofa: Reparte la gasolina entre amigos",
   description: "Calcula distancia, consumo y reparte el gasto de gasolina entre amigos de forma justa y rápida.",
   icons: {
     icon: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon", type: "image/png" }],
   },
   openGraph: {
-    title: "PagaLaGasofa — Reparte la gasolina entre amigos",
+    title: "PagaLaGasofa: Reparte la gasolina entre amigos",
     description: "Calcula distancia, consumo y reparte el gasto de gasolina entre amigos de forma justa y rápida.",
     url: "https://pagalagasofa.broslunas.com",
     siteName: "PagaLaGasofa",

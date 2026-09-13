@@ -1,31 +1,11 @@
-// Estima el consumo medio de un vehículo con Gemini — API-Ninjas Cars se descartó:
-// en el plan gratuito, combination_mpg/city_mpg/highway_mpg vienen bloqueados.
-// Usa generateContent (no la Interactions API beta: /v1beta/interactions se quedaba
-// colgada sin responder nunca con esta key, confirmado con curl directo; generateContent
-// respondió 200 al instante con la misma key).
-// Requiere GEMINI_API_KEY; sin ella, degrada con 501 y el usuario mete el consumo a mano.
-// Cachea por marca+modelo+año en VehicleConsumptionCache — mismo vehículo no
-// vuelve a llamar a Gemini.
-// generateContent usa un Schema estilo proto (no JSON Schema): tipos en mayúsculas,
-// "nullable" en vez de type: [x, "null"] — esto último da 400 "Proto field is not repeating".
 import { prisma } from "@/lib/prisma";
 
-const SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    consumptionL100: {
-      type: "NUMBER",
-      nullable: true,
-      description:
-        "Consumo medio combinado en litros/100km para ese vehículo. null si es eléctrico o no se puede estimar.",
-    },
-  },
-  required: ["consumptionL100"],
-};
-
 export async function GET(request: Request) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
+  const apiKey = process.env.AI_API_KEY || "sk-38193f062aa4aa21-f6c5l7-247c92aa";
+  const baseUrl = process.env.AI_BASE_URL || "https://ai.broslunas.com/v1";
+  const model = process.env.AI_MODEL || "rotate-top";
+
+  if (!apiKey) {
     return Response.json(
       { error: "Búsqueda automática no configurada, introduce el consumo manualmente" },
       { status: 501 }
@@ -34,45 +14,55 @@ export async function GET(request: Request) {
 
   const params = new URL(request.url).searchParams;
   const brand = params.get("brand")?.trim();
-  const model = params.get("model")?.trim();
+  const modelName = params.get("model")?.trim();
   const year = params.get("year")?.trim();
   const fuelType = params.get("fuelType")?.trim();
-  if (!brand || !model) {
+  if (!brand || !modelName) {
     return Response.json({ error: "Faltan brand/model" }, { status: 400 });
   }
 
-  const cacheKey = `${brand.toLowerCase()}|${model.toLowerCase()}|${year ?? ""}`;
+  const cacheKey = `${brand.toLowerCase()}|${modelName.toLowerCase()}|${year ?? ""}`;
   const cached = await prisma.vehicleConsumptionCache.findUnique({ where: { key: cacheKey } });
   if (cached) {
     return Response.json({ consumptionL100: cached.consumptionL100 });
   }
 
-  const res = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `Estima el consumo medio combinado (ciudad+carretera) en litros por 100km de este vehículo: marca ${brand}, modelo ${model}${year ? `, año ${year}` : ""}${fuelType ? `, combustible ${fuelType}` : ""}. Da tu mejor estimación aunque no sea exacta.`,
-              },
-            ],
-          },
-        ],
-        generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA },
-      }),
-    }
-  );
-  if (!res.ok) return Response.json({ error: "Gemini no respondió" }, { status: 502 });
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      stream: false,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            'Eres un experto en automoción. Devuelve exclusivamente un objeto JSON con la clave "consumptionL100" (número con el consumo medio en l/100km, o null si es eléctrico o desconocido). Ejemplo: {"consumptionL100": 5.8}',
+        },
+        {
+          role: "user",
+          content: `Estima el consumo medio combinado en l/100km para: marca ${brand}, modelo ${modelName}${
+            year ? `, año ${year}` : ""
+          }${fuelType ? `, combustible ${fuelType}` : ""}.`,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) return Response.json({ error: "El router de IA no respondió" }, { status: 502 });
 
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  const parsed = text ? JSON.parse(text) : null;
+  const content = data.choices?.[0]?.message?.content ?? "";
+  // Limpia posibles tags <think> de modelos con razonamiento
+  const clean = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const match = clean.match(/\{[\s\S]*\}/);
+  const parsed = match ? JSON.parse(match[0]) : null;
   const value = parsed?.consumptionL100;
+
   if (typeof value !== "number") {
     return Response.json({ error: "No se pudo estimar el consumo de ese vehículo" }, { status: 404 });
   }

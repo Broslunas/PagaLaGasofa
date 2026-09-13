@@ -54,6 +54,7 @@ interface GasStation {
 }
 
 export function GasolinerasMapSection() {
+  const [mounted, setMounted] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState("28");
   const [selectedFuel, setSelectedFuel] = useState<string>("gasolina95");
   const [stations, setStations] = useState<GasStation[]>([]);
@@ -64,6 +65,10 @@ export function GasolinerasMapSection() {
   } | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -155,24 +160,20 @@ export function GasolinerasMapSection() {
   const activeFuelMeta = FUEL_TYPES.find((f) => f.id === selectedFuel);
 
   return (
-    <section className="relative px-4 py-12 md:py-16">
+    <section className="relative px-4 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
         {/* Header Title & Controls */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Sparkles className="size-3.5" />
-              Precios en directo (MITECO)
-            </div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Mapa interactivo de gasolineras
+            <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+              Mapa oficial de gasolineras
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Explora las estaciones con precio y marca en tu zona antes de salir.
+            <p className="mt-2 text-base text-muted-foreground">
+              Compara precios oficiales actualizados hoy en tu provincia antes de repostar.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Province Selector */}
             <div className="relative">
               <select
@@ -182,7 +183,7 @@ export function GasolinerasMapSection() {
                   setLocationDetected(false);
                 }}
                 aria-label="Seleccionar provincia"
-                className="h-9 cursor-pointer appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-card"
+                className="h-10 cursor-pointer appearance-none rounded-full border border-border/80 bg-card px-4 pr-9 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-primary/50 focus:border-primary focus:outline-none dark:bg-card"
               >
                 {PROVINCES.map((p) => (
                   <option key={p.id} value={p.id} className="bg-card text-foreground">
@@ -190,7 +191,7 @@ export function GasolinerasMapSection() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             {/* Fuel Selector */}
@@ -199,7 +200,7 @@ export function GasolinerasMapSection() {
                 value={selectedFuel}
                 onChange={(e) => setSelectedFuel(e.target.value)}
                 aria-label="Seleccionar carburante"
-                className="h-9 cursor-pointer appearance-none rounded-xl border border-input bg-card px-3 pr-8 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-ring focus:border-ring focus:outline-none dark:bg-card"
+                className="h-10 cursor-pointer appearance-none rounded-full border border-border/80 bg-card px-4 pr-9 text-xs font-medium text-foreground shadow-xs transition-colors hover:border-primary/50 focus:border-primary focus:outline-none dark:bg-card"
               >
                 {FUEL_TYPES.map((f) => (
                   <option key={f.id} value={f.id} className="bg-card text-foreground">
@@ -207,7 +208,7 @@ export function GasolinerasMapSection() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             {/* Auto Detect Location */}
@@ -216,7 +217,7 @@ export function GasolinerasMapSection() {
               size="sm"
               onClick={requestLocation}
               disabled={locating}
-              className="h-9 gap-1.5 rounded-xl text-xs font-medium"
+              className="h-10 gap-2 rounded-full px-4 text-xs font-medium"
             >
               <Navigation
                 className={`size-3.5 ${
@@ -236,34 +237,38 @@ export function GasolinerasMapSection() {
           </div>
         </div>
 
-        {/* Map Container Card */}
-        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <MapPin className="size-4 text-primary" />
-              <span>{mapStations.length} estaciones encontradas</span>
-            </div>
-            <Link
-              href={`/gasolineras?provincia=${selectedProvince}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              Ver listado detallado
-              <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-
-          <div className="h-[400px] w-full sm:h-[480px]">
-            {loading ? (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                Cargando mapa de estaciones...
+        {/* Double-Bezel Map Container */}
+        <div className="rounded-3xl p-1.5 ring-1 ring-border/50 bg-muted/20 shadow-xl shadow-black/5 dark:shadow-black/20">
+          <div className="overflow-hidden rounded-[calc(1.5rem-0.375rem)] border border-border/40 bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/50 bg-muted/30 px-5 py-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <MapPin className="size-4 text-primary" />
+                <span className="font-mono">{mapStations.length}</span>
+                <span>estaciones encontradas</span>
               </div>
-            ) : (
-              <GasStationsOverviewMap
-                stations={mapStations}
-                fuelLabel={activeFuelMeta?.label || "Carburante"}
-                provinceId={selectedProvince}
-              />
-            )}
+              <Link
+                href={`/gasolineras?provincia=${selectedProvince}`}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+              >
+                <span>Ver listado detallado</span>
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+
+            <div className="h-[420px] w-full sm:h-[500px]">
+              {!mounted || loading ? (
+                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                  Cargando mapa de estaciones...
+                </div>
+              ) : (
+                <GasStationsOverviewMap
+                  key={`${selectedProvince}-${selectedFuel}`}
+                  stations={mapStations}
+                  fuelLabel={activeFuelMeta?.label || "Carburante"}
+                  provinceId={selectedProvince}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
