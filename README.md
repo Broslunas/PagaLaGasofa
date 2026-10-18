@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PagaLaGasofa
 
-## Getting Started
+Aplicación web para calcular costes de viajes en coche, repartir gastos entre pasajeros y consultar gasolineras con precios oficiales en España.
 
-First, run the development server:
+## Qué hace
+
+- Calcula distancia, consumo, peajes y coste total del viaje.
+- Reparte el coste entre pasajeros y genera un ticket compartible.
+- Guarda viajes, vehículos y gasolineras favoritas para usuarios autenticados.
+- Muestra mapa de rutas y resumen de actividad en dashboard.
+- Consulta precios de combustible y detalle de estaciones (MITECO).
+- Incluye notificaciones y soporte de Web Push.
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router) + React 19
+- **Lenguaje:** TypeScript
+- **Estilos/UI:** Tailwind CSS 4 + componentes UI propios
+- **Autenticación:** Auth.js (NextAuth v5 beta) con Google OAuth
+- **Base de datos:** MongoDB + Prisma ORM
+
+## Requisitos
+
+- Node.js 20+
+- npm 10+
+- Base de datos MongoDB accesible (Atlas recomendado)
+- Credenciales OAuth de Google (si quieres login social)
+
+## Instalación
+
+1. Instala dependencias:
+
+```bash
+npm install
+```
+
+2. Copia variables de entorno:
+
+```bash
+cp .env.example .env
+```
+
+3. Rellena `.env` con tus valores (`DATABASE_URL`, `AUTH_SECRET`, etc.).
+
+4. Prisma Client se genera automáticamente tras `npm install` (script `postinstall`).
+
+## Variables de entorno principales
+
+Revisa `.env.example` para el listado completo.
+
+- `DATABASE_URL`: conexión MongoDB
+- `AUTH_SECRET`: secreto de Auth.js
+- `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`: login con Google
+- `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`: estimación de consumo con IA (opcional)
+- `CRON_SECRET`: protección de endpoints cron
+- `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: Web Push
+
+## Scripts
+
+```bash
+npm run dev    # entorno local
+npm run lint   # eslint
+npm run build  # build de producción
+npm run start  # arrancar build en producción
+```
+
+## Desarrollo
+
+Arranca la app en local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Después abre `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estructura (resumen)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/app`: rutas, páginas y API Routes
+- `/components`: componentes de interfaz y bloques funcionales
+- `/lib`: utilidades de negocio, servicios y helpers
+- `/prisma`: esquema de datos
 
-## Learn More
+## Notas
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- El proyecto usa **Prisma 6.19.3** con MongoDB.
+- Algunas funciones (cron, push, login social) dependen de configurar correctamente sus variables de entorno.
