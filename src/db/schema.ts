@@ -14,17 +14,12 @@ import {
 } from "drizzle-orm/pg-core"
 import { authUid, authUsers, authenticatedRole } from "drizzle-orm/supabase"
 
+import { FUEL_TYPES, type FuelType } from "@/lib/trip/fuel"
+
 /**
  * Combustibles soportados. Coinciden con los de MITECO (Fase 7) más electricidad.
  */
-export const fuelTypeEnum = pgEnum("fuel_type", [
-  "gasolina95",
-  "gasolina98",
-  "diesel",
-  "dieselPremium",
-  "glp",
-  "electrico",
-])
+export const fuelTypeEnum = pgEnum("fuel_type", FUEL_TYPES)
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -96,4 +91,4 @@ export const vehicles = pgTable(
 export type Profile = typeof profiles.$inferSelect
 export type Vehicle = typeof vehicles.$inferSelect
 export type NewVehicle = typeof vehicles.$inferInsert
-export type FuelType = (typeof fuelTypeEnum.enumValues)[number]
+export type { FuelType }
