@@ -3,7 +3,7 @@
 ## 1. Proyecto y variables
 1. Crea un proyecto en Supabase (región UE).
 2. Copia a `.env.local` (ver `.env.example`):
-   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Settings → API).
+   - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Settings → API).
    - `DATABASE_URL`: cadena del *pooler* en modo transacción (Settings → Database → Connection string, puerto 6543).
 3. Aplica las migraciones: `pnpm db:migrate`.
 
