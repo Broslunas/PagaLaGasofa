@@ -57,3 +57,45 @@ export function distanceToPolylineKm(
   }
   return min
 }
+
+/**
+ * Simplifica una polilínea [lng, lat] con Ramer–Douglas–Peucker (iterativo, sin
+ * recursión) conservando los extremos. `toleranceM` en metros.
+ */
+export function simplifyPolyline(points: [number, number][], toleranceM = 15): [number, number][] {
+  if (points.length <= 2) return points.slice()
+
+  const refLat = toRad(points[Math.floor(points.length / 2)][1])
+  const mPerDegLat = (Math.PI / 180) * EARTH_RADIUS_KM * 1000
+  const xy = points.map(([lng, lat]) => [lng * Math.cos(refLat) * mPerDegLat, lat * mPerDegLat] as const)
+
+  const keep = new Uint8Array(points.length)
+  keep[0] = keep[points.length - 1] = 1
+  const stack: [number, number][] = [[0, points.length - 1]]
+
+  while (stack.length) {
+    const [start, end] = stack.pop()!
+    const [ax, ay] = xy[start]
+    const [bx, by] = xy[end]
+    const dx = bx - ax
+    const dy = by - ay
+    const lenSq = dx * dx + dy * dy
+
+    let maxDist = 0
+    let index = -1
+    for (let i = start + 1; i < end; i++) {
+      const [px, py] = xy[i]
+      const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq))
+      const dist = Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+      if (dist > maxDist) {
+        maxDist = dist
+        index = i
+      }
+    }
+    if (index !== -1 && maxDist > toleranceM) {
+      keep[index] = 1
+      stack.push([start, index], [index, end])
+    }
+  }
+  return points.filter((_, i) => keep[i])
+}

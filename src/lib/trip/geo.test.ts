@@ -35,3 +35,24 @@ describe("geo", () => {
     expect(distanceToPolylineKm(near, long, 50)).toBeLessThan(2)
   })
 })
+
+import { simplifyPolyline } from "./geo"
+
+describe("simplifyPolyline", () => {
+  it("elimina puntos colineales y conserva extremos", () => {
+    const line: [number, number][] = Array.from({ length: 50 }, (_, i) => [-4 + i * 0.01, 40])
+    const out = simplifyPolyline(line, 10)
+    expect(out).toEqual([line[0], line[49]])
+  })
+  it("conserva un giro marcado", () => {
+    const out = simplifyPolyline([[0, 0], [0.5, 0], [1, 0], [1, 0.5], [1, 1]], 10)
+    expect(out).toContainEqual([1, 0])
+    expect(out[0]).toEqual([0, 0])
+    expect(out.at(-1)).toEqual([1, 1])
+  })
+  it("no rompe con 0, 1 o 2 puntos", () => {
+    expect(simplifyPolyline([])).toEqual([])
+    expect(simplifyPolyline([[1, 1]])).toEqual([[1, 1]])
+    expect(simplifyPolyline([[1, 1], [2, 2]])).toEqual([[1, 1], [2, 2]])
+  })
+})

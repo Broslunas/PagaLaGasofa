@@ -7,6 +7,7 @@ import {
   pgEnum,
   pgPolicy,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -92,3 +93,20 @@ export type Profile = typeof profiles.$inferSelect
 export type Vehicle = typeof vehicles.$inferSelect
 export type NewVehicle = typeof vehicles.$inferInsert
 export type { FuelType }
+
+/**
+ * Contadores de ventana fija para limitar peticiones a endpoints públicos.
+ * RLS activado sin políticas: solo accesible con la conexión directa del servidor.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(1),
+  },
+  (t) => [
+    primaryKey({ columns: [t.key, t.windowStart] }),
+    index("rate_limits_window_start_idx").on(t.windowStart),
+  ],
+).enableRLS()
