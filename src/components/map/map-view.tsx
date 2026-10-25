@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 export interface MapMarker {
   id: string
   lngLat: LngLat
-  kind: "origin" | "stop" | "destination" | "station" | "center"
+  kind: "origin" | "stop" | "destination" | "station" | "center" | "live"
   /** Texto dentro del marcador (A, B, 1, 2…) o precio en las gasolineras. */
   label?: string
   /** Gasolinera más barata del conjunto. */
@@ -46,6 +46,7 @@ const kindClass: Record<MapMarker["kind"], string> = {
   destination: "size-8 rounded-full bg-fuel text-fuel-foreground",
   station: "h-7 min-w-12 rounded-full bg-card px-2 text-xs text-foreground border border-border tabular-nums",
   center: "size-4 rounded-full bg-primary",
+  live: "relative size-7 rounded-full",
 }
 
 function markerElement(marker: MapMarker, onClick?: (id: string) => void) {
@@ -57,6 +58,16 @@ function markerElement(marker: MapMarker, onClick?: (id: string) => void) {
     marker.selected && "z-10 scale-125 ring-primary",
     onClick && marker.kind === "station" && "cursor-pointer",
   )
+  if (marker.kind === "live") {
+    // Punto con halo que late: «aquí está ahora». El halo se detiene con «reducir movimiento».
+    el.className = "relative flex size-7 items-center justify-center"
+    el.innerHTML =
+      '<span class="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-50 motion-reduce:animate-none"></span>' +
+      '<span class="relative size-4 rounded-full bg-primary ring-2 ring-white shadow-md"></span>'
+    el.setAttribute("role", "img")
+    el.setAttribute("aria-label", marker.label ?? "Ubicación en vivo")
+    return el
+  }
   el.textContent = marker.label ?? ""
   if (onClick && marker.kind === "station") {
     el.setAttribute("role", "button")

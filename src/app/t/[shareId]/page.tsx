@@ -4,6 +4,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
+import { StartLiveForm } from "@/components/live/start-live-form"
 import { PassengerList } from "@/components/ticket/passenger-list"
 import { ManageCapture } from "@/components/ticket/manage-capture"
 import { ManagerPanel } from "@/components/ticket/manager-panel"
@@ -12,6 +13,7 @@ import { TicketLive } from "@/components/ticket/ticket-live"
 import { TicketMap } from "@/components/ticket/ticket-map"
 import { Button } from "@/components/ui/button"
 import { formatCents, formatNumber } from "@/lib/format"
+import { activeLiveForTrip } from "@/lib/live/server"
 import { siteOrigin } from "@/lib/site"
 import { FUEL_INFO } from "@/lib/trip/fuel"
 import { manageUrl, mapsDirectionsUrl, shareMessage, tripTitle, whatsappUrl } from "@/lib/trip/share"
@@ -58,7 +60,7 @@ async function TicketBody({ params }: { params: Promise<{ shareId: string }> }) 
   }
 
   const { trip, passengers } = lookup
-  const [access, origin] = await Promise.all([resolveAccess(trip), siteOrigin()])
+  const [access, origin, live] = await Promise.all([resolveAccess(trip), siteOrigin(), activeLiveForTrip(trip.id)])
   const url = `${origin}/t/${trip.shareId}`
   const title = tripTitle(trip.title, trip.stops)
   const message = shareMessage({ title, totalCents: trip.totalCents, url })
@@ -136,6 +138,28 @@ async function TicketBody({ params }: { params: Promise<{ shareId: string }> }) 
           mapsUrl={mapsDirectionsUrl(trip.stops)}
           title={title}
         />
+
+        {(live || access.manager) && (
+          <section aria-labelledby="live-h" className="space-y-3 rounded-2xl border bg-card p-4">
+            <h2 id="live-h" className="flex items-center gap-2 text-sm font-semibold">
+              {live && <span className="size-2 animate-pulse rounded-full bg-success motion-reduce:animate-none" aria-hidden />}
+              Ubicación en vivo
+            </h2>
+            {live ? (
+              <>
+                <p className="text-sm text-muted-foreground">El conductor está compartiendo su ubicación ahora mismo.</p>
+                <Button asChild>
+                  <Link href={`/en-vivo/${live.shareId}`}>{access.manager ? "Abrir y gestionar" : "Ver dónde va"}</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Comparte tu posición en directo con quienes te esperan; verán también la ruta de este viaje.</p>
+                <StartLiveForm tripShareId={trip.shareId} />
+              </>
+            )}
+          </section>
+        )}
 
         <details className="rounded-2xl border bg-card p-4">
           <summary className="cursor-pointer text-sm font-medium">Mostrar código QR</summary>

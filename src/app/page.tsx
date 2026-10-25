@@ -19,6 +19,9 @@ export default function Home() {
         <Button asChild size="lg" variant="outline">
           <Link href="/gasolineras">Gasolineras</Link>
         </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/en-vivo">Compartir ubicación</Link>
+        </Button>
       </div>
       <Link href="/design" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
         Guía de estilo

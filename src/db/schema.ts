@@ -4,6 +4,7 @@ import {
   index,
   date,
   doublePrecision,
+  real,
   integer,
   jsonb,
   smallint,
@@ -375,3 +376,36 @@ export const pushSubscriptions = pgTable(
 ).enableRLS()
 
 export type Notification = typeof notifications.$inferSelect
+
+/**
+ * Sesión de ubicación en vivo. Solo se guarda la última posición (nunca un historial) y se borra al parar.
+ * `shareId` es el enlace público de lectura; el token de gestión (en cookie) autoriza a enviar posiciones.
+ */
+export const liveShares = pgTable(
+  "live_shares",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    shareId: text("share_id").notNull(),
+    manageTokenHash: text("manage_token_hash").notNull(),
+    userId: uuid("user_id").references(() => authUsers.id, { onDelete: "set null" }),
+    /** Ticket al que está vinculada (opcional): el visor muestra su ruta. */
+    tripId: uuid("trip_id").references(() => trips.id, { onDelete: "set null" }),
+    title: text("title"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    accuracyM: real("accuracy_m"),
+    headingDeg: real("heading_deg"),
+    speedMs: real("speed_ms"),
+    positionAt: timestamp("position_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("live_shares_share_id_idx").on(t.shareId),
+    index("live_shares_trip_idx").on(t.tripId),
+    index("live_shares_expires_idx").on(t.expiresAt),
+  ],
+).enableRLS()
+
+export type LiveShare = typeof liveShares.$inferSelect

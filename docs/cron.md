@@ -42,6 +42,9 @@ select cron.schedule('purge-rate-limits', '17 3 * * *', $$ delete from public.ra
 -- Notificaciones leídas de más de 90 días.
 select cron.schedule('purge-notifications', '29 3 * * *', $$ delete from public.notifications where read_at is not null and read_at < now() - interval '90 days' $$);
 
+-- Sesiones de ubicación en vivo terminadas o caducadas (la posición ya se borra al parar; esto limpia las filas).
+select cron.schedule('purge-live-shares', '31 3 * * *', $$ update public.live_shares set lat = null, lng = null, accuracy_m = null, heading_deg = null, speed_ms = null, position_at = null where expires_at < now() and lat is not null; delete from public.live_shares where expires_at < now() - interval '1 day' $$);
+
 -- Tickets anónimos caducados (el histórico de pagos se borra en cascada).
 select cron.schedule('purge-expired-trips', '23 3 * * *', $$ delete from public.trips where expires_at is not null and expires_at < now() $$);
 ```
