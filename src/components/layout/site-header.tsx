@@ -1,6 +1,8 @@
 import Link from "next/link"
+import { Suspense } from "react"
 
 import { Logo } from "@/components/brand/logo"
+import { AuthButton } from "@/components/layout/auth-button"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 
 export function SiteHeader() {
@@ -10,7 +12,12 @@ export function SiteHeader() {
         <Link href="/" aria-label="PagaLaGasofa">
           <Logo />
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <Suspense fallback={<div className="h-8 w-20" aria-hidden />}>
+            <AuthButton />
+          </Suspense>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )
