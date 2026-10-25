@@ -24,3 +24,14 @@ Next.js, TypeScript, Tailwind 4, shadcn/ui, Supabase (Postgres, Auth, Realtime),
 12. Migración y salida
 
 Cada fase cierra con un commit y un tag `fase-N`.
+
+## Desarrollo
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm lint && pnpm typecheck && pnpm test
+```
+
+Copia `.env.example` a `.env.local` y rellena las variables según avancen las fases.
+La propuesta de identidad (paleta, tipografía, logo) está en `/design`.
