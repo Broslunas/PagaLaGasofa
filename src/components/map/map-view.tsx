@@ -50,14 +50,10 @@ const kindClass: Record<MapMarker["kind"], string> = {
 }
 
 function markerElement(marker: MapMarker, onClick?: (id: string) => void) {
+  // MapLibre coloca el elemento con `transform: translate(...)`. La propiedad CSS `scale` se aplica
+  // por fuera de ese transform y multiplicaría la traslación, así que el escalado va en un hijo.
   const el = document.createElement("div")
-  el.className = cn(
-    "flex items-center justify-center text-sm font-semibold shadow-md ring-2 ring-background",
-    kindClass[marker.kind],
-    marker.best && "border-success bg-success text-white",
-    marker.selected && "z-10 scale-125 ring-primary",
-    onClick && marker.kind === "station" && "cursor-pointer",
-  )
+  if (marker.selected) el.className = "z-10"
   if (marker.kind === "live") {
     // Punto con halo que late: «aquí está ahora». El halo se detiene con «reducir movimiento».
     el.className = "relative flex size-7 items-center justify-center"
@@ -68,17 +64,26 @@ function markerElement(marker: MapMarker, onClick?: (id: string) => void) {
     el.setAttribute("aria-label", marker.label ?? "Ubicación en vivo")
     return el
   }
-  el.textContent = marker.label ?? ""
+  const inner = document.createElement("div")
+  inner.className = cn(
+    "flex items-center justify-center text-sm font-semibold shadow-md ring-2 ring-background",
+    kindClass[marker.kind],
+    marker.best && "border-success bg-success text-white",
+    marker.selected && "scale-125 ring-primary",
+    onClick && marker.kind === "station" && "cursor-pointer",
+  )
+  inner.textContent = marker.label ?? ""
   if (onClick && marker.kind === "station") {
-    el.setAttribute("role", "button")
-    el.setAttribute("aria-label", `Gasolinera ${marker.label ?? ""}`)
-    el.tabIndex = 0
-    el.addEventListener("click", (e) => {
+    inner.setAttribute("role", "button")
+    inner.setAttribute("aria-label", `Gasolinera ${marker.label ?? ""}`)
+    inner.tabIndex = 0
+    inner.addEventListener("click", (e) => {
       e.stopPropagation()
       onClick(marker.id)
     })
-    el.addEventListener("keydown", (e) => e.key === "Enter" && onClick(marker.id))
+    inner.addEventListener("keydown", (e) => e.key === "Enter" && onClick(marker.id))
   }
+  el.appendChild(inner)
   return el
 }
 
