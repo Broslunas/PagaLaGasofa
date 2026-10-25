@@ -254,7 +254,8 @@ export function MapView({ markers = [], route = null, onMapClick, onMarkerClick,
   useEffect(() => {
     const map = mapRef.current
     if (!map || !focus) return
-    map.easeTo({ center: focus, zoom: Math.max(map.getZoom(), 14), duration: prefersReducedMotion() ? 0 : 500 })
+    // Con el padding, «centro» es el centro de la zona visible (no el que queda bajo el panel o la hoja).
+    map.easeTo({ center: focus, zoom: Math.max(map.getZoom(), 14), padding: latest.current.padding, duration: prefersReducedMotion() ? 0 : 500 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, mapReady])
 
