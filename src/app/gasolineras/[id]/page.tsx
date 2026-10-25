@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { connection } from "next/server"
 import { cache, Suspense } from "react"
 
 import { BrandAvatar } from "@/components/stations/brand-avatar"
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils"
 const loadStation = cache(async (id: string) => (/^\d{1,8}$/.test(id) ? getStation(id) : null))
 
 export async function generateMetadata({ params }: PageProps<"/gasolineras/[id]">): Promise<Metadata> {
+  await connection()
   const station = await loadStation((await params).id)
   if (!station) return { title: "Gasolinera" }
   return {
@@ -26,6 +28,8 @@ export async function generateMetadata({ params }: PageProps<"/gasolineras/[id]"
 }
 
 async function StationBody({ params }: { params: Promise<{ id: string }> }) {
+  // Lee la base de datos: se ejecuta en cada petición, nunca al prerenderizar.
+  await connection()
   const station = await loadStation((await params).id)
   if (!station) notFound()
 
@@ -92,7 +96,7 @@ async function StationBody({ params }: { params: Promise<{ id: string }> }) {
 
 export default function StationPage({ params }: PageProps<"/gasolineras/[id]">) {
   return (
-    <Suspense fallback={<div className="flex-1" aria-busy="true" />}>
+    <Suspense fallback={<div className="min-h-[120svh] flex-1" aria-busy="true" />}>
       <StationBody params={params} />
     </Suspense>
   )

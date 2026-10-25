@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { connection } from "next/server"
 import { Suspense } from "react"
 
 import { LiveSharer } from "@/components/live/live-sharer"
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
 }
 
 async function LiveBody({ params }: { params: Promise<{ shareId: string }> }) {
+  // Lee la base de datos: se ejecuta en cada petición, nunca al prerenderizar.
+  await connection()
   const live = await loadLive((await params).shareId)
   if (!live) notFound()
 

@@ -24,4 +24,8 @@ export async function hashToken(token: string) {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")
 }
 
-export const SHARE_ID_PATTERN = /^[0-9A-Za-z]{12}$/
+/**
+ * Identificadores de ticket válidos: los nuevos (12 caracteres base62) y los antiguos de la v1,
+ * que eran cuid (25 caracteres, empiezan por «c»). Así los enlaces ya compartidos siguen funcionando.
+ */
+export const SHARE_ID_PATTERN = /^(?:[0-9A-Za-z]{12}|c[0-9a-z]{24})$/

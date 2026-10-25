@@ -8,6 +8,12 @@ describe("tokens", () => {
     expect(ids.size).toBe(2000)
     for (const id of ids) expect(id).toMatch(SHARE_ID_PATTERN)
   })
+  it("acepta los ids antiguos de la v1 (cuid) y rechaza el resto", () => {
+    expect(SHARE_ID_PATTERN.test("cmabc1234567890abcdefghij")).toBe(true)
+    expect(SHARE_ID_PATTERN.test("cmabc1234567890abcdefghi")).toBe(false)
+    expect(SHARE_ID_PATTERN.test("Cmabc1234567890abcdefghij")).toBe(false)
+    expect(SHARE_ID_PATTERN.test("../etc/passwd")).toBe(false)
+  })
   it("manageToken tiene 32 caracteres", () => {
     expect(generateManageToken()).toMatch(/^[0-9A-Za-z]{32}$/)
   })

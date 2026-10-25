@@ -2,6 +2,7 @@ import QRCode from "qrcode"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { connection } from "next/server"
 import { Suspense } from "react"
 
 import { StartLiveForm } from "@/components/live/start-live-form"
@@ -21,6 +22,8 @@ import { paymentProgress } from "@/lib/trip/payments"
 import { loadTicket, resolveAccess } from "@/lib/trip/ticket"
 
 export async function generateMetadata({ params }: PageProps<"/t/[shareId]">): Promise<Metadata> {
+  // Los metadatos dependen de la base de datos: se resuelven en cada petición, no al prerenderizar.
+  await connection()
   const lookup = await loadTicket((await params).shareId)
   if (lookup.status !== "ok") return { title: "Ticket de viaje", robots: { index: false } }
   const title = tripTitle(lookup.trip.title, lookup.trip.stops)
@@ -53,6 +56,8 @@ function Notice({ title, body }: { title: string; body: string }) {
 }
 
 async function TicketBody({ params }: { params: Promise<{ shareId: string }> }) {
+  // Lee la base de datos: se ejecuta en cada petición, nunca al prerenderizar.
+  await connection()
   const lookup = await loadTicket((await params).shareId)
   if (lookup.status === "missing") notFound()
   if (lookup.status === "expired") {
