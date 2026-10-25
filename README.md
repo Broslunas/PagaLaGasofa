@@ -35,3 +35,9 @@ pnpm lint && pnpm typecheck && pnpm test
 
 Copia `.env.example` a `.env.local` y rellena las variables según avancen las fases.
 La propuesta de identidad (paleta, tipografía, logo) está en `/design`.
+
+## Notas de la fase 11
+
+- **Cookies y analítica:** `src/lib/consent.ts` y `src/components/consent/`. La analítica (`analytics.broslunas.com`) solo se carga tras aceptarla.
+- **PWA:** `src/app/manifest.ts` e iconos en `src/app/icon-*`. El service worker (`public/sw.js`) solo guarda recursos estáticos y una página sin conexión: no cachea navegaciones ni API. Si cambias la lista de recursos precargados, sube `VERSION`.
+- **Textos legales:** `src/app/legal/*`. Los datos del titular y la fecha están en `src/lib/legal.ts`.

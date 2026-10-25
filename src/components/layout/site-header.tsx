@@ -12,6 +12,11 @@ export function SiteHeader() {
         <Link href="/" aria-label="PagaLaGasofa">
           <Logo />
         </Link>
+        <nav aria-label="Principal" className="mr-auto ml-6 hidden items-center gap-1 md:flex">
+          <Link href="/viaje" className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground">Calcular viaje</Link>
+          <Link href="/gasolineras" className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground">Gasolineras</Link>
+          <Link href="/en-vivo" className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground">En directo</Link>
+        </nav>
         <div className="flex items-center gap-1">
           <Suspense fallback={<div className="h-8 w-20" aria-hidden />}>
             <AuthButton />
