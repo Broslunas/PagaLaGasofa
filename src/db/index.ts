@@ -16,7 +16,7 @@ export function getDb(): Db {
   if (globalForDb.db) return globalForDb.db
   const url = process.env.DATABASE_URL
   if (!url) throw new Error("Falta DATABASE_URL")
-  const db = create(url)
-  if (process.env.NODE_ENV !== "production") globalForDb.db = db
-  return db
+  // Se reutiliza también en producción: cada llamada abriría un pool nuevo y agotaría las conexiones del pooler.
+  globalForDb.db = create(url)
+  return globalForDb.db
 }
