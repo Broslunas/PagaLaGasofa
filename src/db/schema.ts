@@ -40,6 +40,8 @@ export const profiles = pgTable(
       .references(() => authUsers.id, { onDelete: "cascade" }),
     displayName: text("display_name"),
     avatarUrl: text("avatar_url"),
+    /** Recibir las alertas de precio también por email (por defecto, no). */
+    notifyEmail: boolean("notify_email").notNull().default(false),
     ...timestamps,
   },
   (t) => [
@@ -303,6 +305,11 @@ export const favoriteStations = pgTable(
       .references(() => stations.id, { onDelete: "cascade" }),
     /** Combustible que se mostrará y vigilará en esta favorita. */
     fuelType: fuelTypeEnum("fuel_type").notNull().default("gasolina95"),
+    alertEnabled: boolean("alert_enabled").notNull().default(false),
+    /** Avisar al cruzar este precio hacia abajo; sin umbral, se avisa de cualquier bajada notable. */
+    alertThreshold: numeric("alert_threshold", { precision: 5, scale: 3, mode: "number" }),
+    /** Último precio comprobado, para detectar bajadas y no repetir avisos. */
+    lastSeenPrice: numeric("last_seen_price", { precision: 5, scale: 3, mode: "number" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -317,3 +324,54 @@ export const favoriteStations = pgTable(
 ).enableRLS()
 
 export type Station = typeof stations.$inferSelect
+
+export const notificationTypeEnum = pgEnum("notification_type", ["price_drop", "system"])
+
+/** Centro de notificaciones del usuario (la campana). */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    /** Ruta interna a la que lleva la notificación. */
+    url: text("url"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_created_idx").on(t.userId, t.createdAt),
+    pgPolicy("notifications_all_own", {
+      for: "all",
+      to: authenticatedRole,
+      using: sql`${authUid} = ${t.userId}`,
+      withCheck: sql`${authUid} = ${t.userId}`,
+    }),
+  ],
+).enableRLS()
+
+/** Dispositivos con Web Push activado. Las claves p256dh/auth son secretas: nunca se exponen al cliente. */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("push_subscriptions_endpoint_idx").on(t.endpoint),
+    index("push_subscriptions_user_idx").on(t.userId),
+  ],
+).enableRLS()
+
+export type Notification = typeof notifications.$inferSelect

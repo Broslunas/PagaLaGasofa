@@ -35,9 +35,9 @@ export async function syncStations(sql: Sql, now = new Date()): Promise<SyncResu
         ${col((r) => r.province)}::text[], ${col((r) => r.postalCode)}::text[],
         ${col((r) => r.lat)}::float8[], ${col((r) => r.lng)}::float8[], ${col((r) => r.schedule)}::text[],
         ${sql.array(col((r) => r.publicSale), 1000)}::boolean[],
-        ${col((r) => r.prices.gasolina95)}::numeric[], ${col((r) => r.prices.gasolina98)}::numeric[],
-        ${col((r) => r.prices.diesel)}::numeric[], ${col((r) => r.prices.dieselPremium)}::numeric[],
-        ${col((r) => r.prices.glp)}::numeric[]
+        ${col((r) => r.prices.gasolina95)}::float8[], ${col((r) => r.prices.gasolina98)}::float8[],
+        ${col((r) => r.prices.diesel)}::float8[], ${col((r) => r.prices.dieselPremium)}::float8[],
+        ${col((r) => r.prices.glp)}::float8[]
       ) as u
       on conflict (id) do update set
         name = excluded.name, brand = excluded.brand, address = excluded.address, locality = excluded.locality,
@@ -47,14 +47,16 @@ export async function syncStations(sql: Sql, now = new Date()): Promise<SyncResu
         price_diesel = excluded.price_diesel, price_diesel_premium = excluded.price_diesel_premium,
         price_glp = excluded.price_glp, seen_at = excluded.seen_at`
 
+    // Los precios van como float8[] (el cliente de Drizzle desactiva la serialización de numeric[]).
+    // El día va como valor único (no como array): el cliente de Drizzle cambia cómo se serializan los arrays de fechas.
     await sql`
       insert into station_price_history (station_id, day, price_gasolina95, price_gasolina98, price_diesel, price_diesel_premium, price_glp)
-      select * from unnest(
-        ${col((r) => r.id)}::text[], ${col(() => day)}::date[],
-        ${col((r) => r.prices.gasolina95)}::numeric[], ${col((r) => r.prices.gasolina98)}::numeric[],
-        ${col((r) => r.prices.diesel)}::numeric[], ${col((r) => r.prices.dieselPremium)}::numeric[],
-        ${col((r) => r.prices.glp)}::numeric[]
-      )
+      select u.id, ${day}::date, u.p95, u.p98, u.d, u.dp, u.g from unnest(
+        ${col((r) => r.id)}::text[],
+        ${col((r) => r.prices.gasolina95)}::float8[], ${col((r) => r.prices.gasolina98)}::float8[],
+        ${col((r) => r.prices.diesel)}::float8[], ${col((r) => r.prices.dieselPremium)}::float8[],
+        ${col((r) => r.prices.glp)}::float8[]
+      ) as u(id, p95, p98, d, dp, g)
       on conflict (station_id, day) do update set
         price_gasolina95 = excluded.price_gasolina95, price_gasolina98 = excluded.price_gasolina98,
         price_diesel = excluded.price_diesel, price_diesel_premium = excluded.price_diesel_premium,

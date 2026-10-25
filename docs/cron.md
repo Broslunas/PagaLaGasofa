@@ -31,7 +31,7 @@ select cron.schedule(
 );
 ```
 
-La ruta (`src/app/api/cron/sync-stations/route.ts`) tarda unos 17 s y tiene `maxDuration = 60`.
+La ruta (`src/app/api/cron/sync-stations/route.ts`) sincroniza los precios y, con ellos ya actualizados, **revisa las alertas de precio** de las favoritas y envía los avisos (centro de notificaciones, Web Push y email). Tarda unos 15 s y tiene `maxDuration = 60`. Un fallo al enviar avisos no invalida la sincronización.
 
 ## Mantenimiento
 
@@ -39,8 +39,17 @@ La ruta (`src/app/api/cron/sync-stations/route.ts`) tarda unos 17 s y tiene `max
 -- Contadores de límite de peticiones de más de un día.
 select cron.schedule('purge-rate-limits', '17 3 * * *', $$ delete from public.rate_limits where window_start < now() - interval '1 day' $$);
 
+-- Notificaciones leídas de más de 90 días.
+select cron.schedule('purge-notifications', '29 3 * * *', $$ delete from public.notifications where read_at is not null and read_at < now() - interval '90 days' $$);
+
 -- Tickets anónimos caducados (el histórico de pagos se borra en cascada).
 select cron.schedule('purge-expired-trips', '23 3 * * *', $$ delete from public.trips where expires_at is not null and expires_at < now() $$);
 ```
 
 Para ver el estado: `select * from cron.job_run_details order by start_time desc limit 20;`
+
+## Variables de entorno de los avisos
+
+- `CRON_SECRET`: mismo valor en Vercel y en Vault.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`: **las mismas en local y en producción**; si cambian, los dispositivos ya suscritos dejan de recibir avisos.
+- `MAILJET_API_KEY`, `MAILJET_API_SECRET`, `MAILJET_FROM_EMAIL` (remitente de un dominio validado en Mailjet) y `MAILJET_FROM_NAME`.

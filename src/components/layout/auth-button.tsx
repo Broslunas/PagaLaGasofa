@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { Button } from "@/components/ui/button"
 import { es } from "@/i18n/es"
 import { getUser } from "@/lib/auth/session"
@@ -17,6 +18,7 @@ export async function AuthButton() {
 
   return (
     <div className="flex items-center gap-1">
+      <NotificationBell />
       <Button asChild variant="ghost" size="sm">
         <Link href="/dashboard">{es.auth.dashboard}</Link>
       </Button>

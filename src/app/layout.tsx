@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google"
 
+import { RegisterSW } from "@/components/layout/register-sw"
 import { SiteHeader } from "@/components/layout/site-header"
 import { ThemeProvider } from "@/components/layout/theme-provider"
 import { es } from "@/i18n/es"
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-dvh flex-col">
         <ThemeProvider>
+          <RegisterSW />
           <SiteHeader />
           <main className="flex flex-1 flex-col">{children}</main>
         </ThemeProvider>

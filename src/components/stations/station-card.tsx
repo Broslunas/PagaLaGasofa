@@ -15,12 +15,15 @@ export function StationCard({
   selected,
   best,
   onSelect,
+  footer,
 }: {
   station: StationDto
   fuel: StationFuel
   selected?: boolean
   best?: boolean
   onSelect?: () => void
+  /** Contenido adicional bajo la tarjeta (p. ej. la configuración de alertas). */
+  footer?: React.ReactNode
 }) {
   const price = station.prices[fuel]
   return (
@@ -57,6 +60,7 @@ export function StationCard({
         </Link>
         <FavoriteButton stationId={station.id} fuelType={fuel} loginNext="/gasolineras" compact />
       </div>
+      {footer}
     </li>
   )
 }

@@ -6,9 +6,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { StationDto, StationFuel } from "@/lib/stations/types"
 
+import { AlertEditor } from "./alert-editor"
+import { STATION_FUELS } from "@/lib/stations/types"
 import { StationCard } from "./station-card"
 
-type Favorite = { fuelType: StationFuel; station: StationDto }
+type Favorite = { fuelType: StationFuel; alertEnabled: boolean; alertThreshold: number | null; station: StationDto }
 type State = { status: "loading" } | { status: "anonymous" } | { status: "error" } | { status: "ready"; items: Favorite[] }
 
 export function FavoritesList() {
@@ -46,8 +48,22 @@ export function FavoritesList() {
   }
   return (
     <ul className="space-y-2">
-      {state.items.map(({ station, fuelType }) => (
-        <StationCard key={station.id} station={station} fuel={fuelType} />
+      {state.items.map(({ station, fuelType, alertEnabled, alertThreshold }) => (
+        <StationCard
+          key={station.id}
+          station={station}
+          fuel={fuelType}
+          footer={
+            <AlertEditor
+              stationId={station.id}
+              fuel={fuelType}
+              currentPrice={station.prices[fuelType]}
+              initialEnabled={alertEnabled}
+              initialThreshold={alertThreshold}
+              availableFuels={STATION_FUELS.filter((f) => station.prices[f] !== null)}
+            />
+          }
+        />
       ))}
     </ul>
   )
