@@ -48,9 +48,17 @@ export async function updateVehicle(userId: string, id: string, input: Partial<V
 }
 
 export async function deleteVehicle(userId: string, id: string) {
-  const [row] = await getDb()
-    .delete(vehicles)
-    .where(and(eq(vehicles.id, id), eq(vehicles.userId, userId)))
-    .returning({ id: vehicles.id })
-  return Boolean(row)
+  return getDb().transaction(async (tx) => {
+    const [row] = await tx
+      .delete(vehicles)
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, userId)))
+      .returning({ id: vehicles.id, isDefault: vehicles.isDefault })
+    if (!row) return false
+    // Si era el predeterminado, el más antiguo de los que quedan pasa a serlo.
+    if (row.isDefault) {
+      const [next] = await tx.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.userId, userId)).orderBy(asc(vehicles.createdAt)).limit(1)
+      if (next) await tx.update(vehicles).set({ isDefault: true }).where(eq(vehicles.id, next.id))
+    }
+    return true
+  })
 }

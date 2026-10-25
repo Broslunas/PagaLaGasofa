@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, asc, between, desc, eq, gt, isNotNull, sql, type SQL } from "drizzle-orm"
+import { and, asc, between, desc, eq, gt, inArray, isNotNull, sql, type SQL } from "drizzle-orm"
 
 import { getDb } from "@/db"
 import { favoriteStations, stationPriceHistory, stations, type Station } from "@/db/schema"
@@ -107,7 +107,7 @@ export async function getStation(id: string): Promise<StationDto | null> {
 
 export async function getStations(ids: string[]): Promise<StationDto[]> {
   if (ids.length === 0) return []
-  const rows = await getDb().select().from(stations).where(sql`${stations.id} = any(${ids})`)
+  const rows = await getDb().select().from(stations).where(inArray(stations.id, ids))
   return rows.map((r) => toDto(r))
 }
 

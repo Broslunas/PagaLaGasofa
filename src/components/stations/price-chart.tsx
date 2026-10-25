@@ -138,11 +138,13 @@ export function PriceChart({ stationId, fuels, initialFuel }: { stationId: strin
           <p className="text-xs text-muted-foreground">
             Mínimo {formatPrice(chart.lo)} € · máximo {formatPrice(chart.hi)} € en el periodo.
           </p>
-          <table className="sr-only">
-            <caption>Precios diarios de {FUEL_INFO[fuel].label}</caption>
-            <thead><tr><th>Día</th><th>€/l</th></tr></thead>
-            <tbody>{points.map((p) => <tr key={p.day}><td>{p.day}</td><td>{formatPrice(p.price)}</td></tr>)}</tbody>
-          </table>
+          <div className="sr-only">
+            <table>
+              <caption>Precios diarios de {FUEL_INFO[fuel].label}</caption>
+              <thead><tr><th>Día</th><th>€/l</th></tr></thead>
+              <tbody>{points.map((p) => <tr key={p.day}><td>{p.day}</td><td>{formatPrice(p.price)}</td></tr>)}</tbody>
+            </table>
+          </div>
         </>
       )}
     </section>

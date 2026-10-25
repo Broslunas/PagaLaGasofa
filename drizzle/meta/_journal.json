@@ -50,6 +50,13 @@
       "when": 1792927210985,
       "tag": "0006_live_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792927575833,
+      "tag": "0007_route_prices",
+      "breakpoints": true
     }
   ]
 }

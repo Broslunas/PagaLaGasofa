@@ -187,6 +187,9 @@ export const trips = pgTable(
     extras: jsonb("extras").$type<TripExtraRow[]>().notNull().default([]),
     driverPays: boolean("driver_pays").notNull().default(true),
     splitMode: splitModeEnum("split_mode").notNull().default("legs"),
+    /** Precios de la ruta cuando se creó (gasolineras a menos de 3 km): sirven para calcular el ahorro. Pueden faltar. */
+    routePriceAvg: numeric("route_price_avg", { precision: 5, scale: 3, mode: "number" }),
+    routePriceMax: numeric("route_price_max", { precision: 5, scale: 3, mode: "number" }),
     energyUnits: numeric("energy_units", { precision: 8, scale: 2, mode: "number" }).notNull(),
     co2Kg: numeric("co2_kg", { precision: 8, scale: 2, mode: "number" }).notNull(),
     energyCents: integer("energy_cents").notNull(),

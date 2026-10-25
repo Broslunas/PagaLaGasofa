@@ -1,7 +1,12 @@
 import "server-only"
 
+import { eq } from "drizzle-orm"
+import { after } from "next/server"
+
 import { getDb } from "@/db"
 import { tripPassengers, trips } from "@/db/schema"
+import { stationsAlongRoute } from "@/lib/stations/queries"
+import { isStationFuel } from "@/lib/stations/types"
 import { generateManageToken, generateShareId, hashToken } from "@/lib/tokens"
 
 import { calculateTrip } from "./calculator"
@@ -60,6 +65,20 @@ export async function createTrip(draft: TripDraft, userId: string | null) {
       })),
     )
   })
+
+  // Precios de la ruta para el cálculo de ahorro del panel. Se hace tras responder: no retrasa la creación.
+  if (isStationFuel(draft.fuelType) && draft.geometry.length > 1) {
+    after(async () => {
+      try {
+        const { stats } = await stationsAlongRoute(draft.geometry, draft.fuelType as never, 3, 1)
+        if (stats.max !== null) {
+          await getDb().update(trips).set({ routePriceAvg: stats.avg, routePriceMax: stats.max }).where(eq(trips.shareId, shareId))
+        }
+      } catch (error) {
+        console.warn("createTrip: no se pudieron guardar los precios de la ruta", (error as Error).message)
+      }
+    })
+  }
 
   return { shareId, manageToken, result }
 }
