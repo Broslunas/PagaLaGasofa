@@ -51,12 +51,16 @@ const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: r
 export function MapView({ markers = [], route = null, onMapClick, className, padding }: Props) {
   const { resolvedTheme } = useTheme()
   const theme = resolvedTheme === "dark" ? "dark" : "light"
+  // next-themes no conoce el tema hasta montarse; crear el mapa antes provocaría cargar dos estilos.
+  const themeKnown = resolvedTheme !== undefined
 
   const [failed, setFailed] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markerObjs = useRef<Marker[]>([])
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null)
+  const appliedTheme = useRef<"light" | "dark" | null>(null)
 
   // Los últimos valores, accesibles desde los callbacks del mapa sin recrearlo.
   const latest = useRef<{
@@ -123,6 +127,7 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
 
   // Creación del mapa (una sola vez).
   useEffect(() => {
+    if (!themeKnown) return
     let disposed = false
     let map: MapLibreMap | null = null
 
@@ -132,7 +137,10 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
         if (!document.createElement("canvas").getContext("webgl2")) throw new Error("WebGL2 no disponible")
         const [maplibre, style] = await Promise.all([import("maplibre-gl"), loadMapStyle(latest.current.theme)])
         if (disposed || !containerRef.current) return
+        // El worker se sirve desde /public (ver scripts/copy-maplibre-worker.mjs).
+        maplibre.setWorkerUrl(`${window.location.origin}/maplibre-gl-worker.mjs`)
         maplibreRef.current = maplibre
+        appliedTheme.current = latest.current.theme
 
         map = new maplibre.Map({
           container: containerRef.current,
@@ -151,9 +159,15 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
       if (!map || !maplibre) return
       mapRef.current = map
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right")
+      map.on("error", (e) => console.error("MapLibre:", e.error ?? e))
       map.on("click", (e) => latest.current.onMapClick?.([e.lngLat.lng, e.lngLat.lat]))
       map.on("style.load", () => map && drawRoute(map))
-      map.on("load", () => map && (drawRoute(map), fit(map)))
+      map.on("load", () => {
+        if (!map) return
+        setMapReady(true)
+        drawRoute(map)
+        fit(map)
+      })
     })()
 
     return () => {
@@ -162,13 +176,16 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
       markerObjs.current = []
       map?.remove()
       mapRef.current = null
+      appliedTheme.current = null
+      setMapReady(false)
     }
-  }, [])
+  }, [themeKnown])
 
   // Cambio de tema: se recarga el estilo; la ruta se redibuja en `style.load`.
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || appliedTheme.current === theme) return
+    appliedTheme.current = theme
     let cancelled = false
     loadMapStyle(theme).then((style) => {
       if (!cancelled) map.setStyle(style as never)
@@ -184,7 +201,7 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
     if (!map) return
     drawRoute(map)
     if (route && route.length > 1) fit(map)
-  }, [route])
+  }, [route, mapReady])
 
   // Marcadores.
   useEffect(() => {
@@ -196,7 +213,7 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
       new maplibre.Marker({ element: markerElement(marker) }).setLngLat(marker.lngLat).addTo(map),
     )
     if (!(route && route.length > 1)) fit(map)
-  }, [markers, route])
+  }, [markers, route, mapReady])
 
   return (
     <div className={cn("relative size-full bg-muted", className)}>

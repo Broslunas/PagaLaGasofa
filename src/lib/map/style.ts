@@ -104,7 +104,7 @@ export function loadMapStyle(theme: "light" | "dark"): Promise<StyleLike> {
     )
   }
   const light = cache.get("light")!
-  if (theme === "light") return light
   if (!cache.has("dark")) cache.set("dark", light.then(toDarkStyle))
-  return cache.get("dark")!
+  // MapLibre puede modificar el objeto que recibe: se entrega siempre una copia.
+  return cache.get(theme)!.then((style) => structuredClone(style))
 }
