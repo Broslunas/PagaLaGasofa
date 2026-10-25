@@ -12,9 +12,17 @@ export default function Home() {
         {es.app.tagline}
       </h1>
       <p className="text-pretty text-muted-foreground">{es.soon}</p>
-      <Button asChild variant="outline">
-        <Link href="/design">Guía de estilo</Link>
-      </Button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button asChild size="lg">
+          <Link href="/viaje">Calcular un viaje</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/gasolineras">Gasolineras</Link>
+        </Button>
+      </div>
+      <Link href="/design" className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+        Guía de estilo
+      </Link>
     </div>
   )
 }

@@ -13,15 +13,25 @@ import { cn } from "@/lib/utils"
 export interface MapMarker {
   id: string
   lngLat: LngLat
-  kind: "origin" | "stop" | "destination"
-  /** Texto dentro del marcador (A, B, 1, 2…). */
+  kind: "origin" | "stop" | "destination" | "station" | "center"
+  /** Texto dentro del marcador (A, B, 1, 2…) o precio en las gasolineras. */
   label?: string
+  /** Gasolinera más barata del conjunto. */
+  best?: boolean
+  selected?: boolean
 }
 
 interface Props {
   markers?: MapMarker[]
   route?: LngLat[] | null
   onMapClick?: (lngLat: LngLat) => void
+  onMarkerClick?: (id: string) => void
+  /** Solo se llama cuando el usuario mueve el mapa (no en los encuadres automáticos). */
+  onMoveEnd?: (center: LngLat) => void
+  /** Si cambia, el mapa se centra en este punto con un zoom cercano. */
+  focus?: LngLat | null
+  /** Encuadrar automáticamente los marcadores y la ruta (por defecto, sí). */
+  autoFit?: boolean
   className?: string
   /** Espacio reservado al ajustar la vista, p. ej. para una hoja inferior. */
   padding?: { top: number; right: number; bottom: number; left: number }
@@ -31,24 +41,39 @@ const SPAIN_CENTER: LngLat = [-3.7, 40.2]
 const ROUTE_SOURCE = "plg-route"
 
 const kindClass: Record<MapMarker["kind"], string> = {
-  origin: "bg-primary text-primary-foreground",
-  stop: "bg-card text-foreground border border-border",
-  destination: "bg-fuel text-fuel-foreground",
+  origin: "size-8 rounded-full bg-primary text-primary-foreground",
+  stop: "size-8 rounded-full bg-card text-foreground border border-border",
+  destination: "size-8 rounded-full bg-fuel text-fuel-foreground",
+  station: "h-7 min-w-12 rounded-full bg-card px-2 text-xs text-foreground border border-border tabular-nums",
+  center: "size-4 rounded-full bg-primary",
 }
 
-function markerElement(marker: MapMarker) {
+function markerElement(marker: MapMarker, onClick?: (id: string) => void) {
   const el = document.createElement("div")
   el.className = cn(
-    "flex size-8 items-center justify-center rounded-full text-sm font-semibold shadow-md ring-2 ring-background",
+    "flex items-center justify-center text-sm font-semibold shadow-md ring-2 ring-background",
     kindClass[marker.kind],
+    marker.best && "border-success bg-success text-white",
+    marker.selected && "z-10 scale-125 ring-primary",
+    onClick && marker.kind === "station" && "cursor-pointer",
   )
   el.textContent = marker.label ?? ""
+  if (onClick && marker.kind === "station") {
+    el.setAttribute("role", "button")
+    el.setAttribute("aria-label", `Gasolinera ${marker.label ?? ""}`)
+    el.tabIndex = 0
+    el.addEventListener("click", (e) => {
+      e.stopPropagation()
+      onClick(marker.id)
+    })
+    el.addEventListener("keydown", (e) => e.key === "Enter" && onClick(marker.id))
+  }
   return el
 }
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-export function MapView({ markers = [], route = null, onMapClick, className, padding }: Props) {
+export function MapView({ markers = [], route = null, onMapClick, onMarkerClick, onMoveEnd, focus = null, autoFit = true, className, padding }: Props) {
   const { resolvedTheme } = useTheme()
   const theme = resolvedTheme === "dark" ? "dark" : "light"
   // next-themes no conoce el tema hasta montarse; crear el mapa antes provocaría cargar dos estilos.
@@ -61,18 +86,22 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
   const markerObjs = useRef<Marker[]>([])
   const maplibreRef = useRef<typeof import("maplibre-gl") | null>(null)
   const appliedTheme = useRef<"light" | "dark" | null>(null)
+  const lastFitKey = useRef<string | null>(null)
 
   // Los últimos valores, accesibles desde los callbacks del mapa sin recrearlo.
   const latest = useRef<{
     route: Props["route"]
     markers: MapMarker[]
     onMapClick: Props["onMapClick"]
+    onMarkerClick: Props["onMarkerClick"]
+    onMoveEnd: Props["onMoveEnd"]
+    autoFit: boolean
     padding: Props["padding"]
     theme: "light" | "dark"
-  }>({ route, markers, onMapClick, padding, theme })
+  }>({ route, markers, onMapClick, onMarkerClick, onMoveEnd, autoFit, padding, theme })
   // Debe ir antes que el resto de efectos: estos leen `latest` al ejecutarse.
   useEffect(() => {
-    latest.current = { route, markers, onMapClick, padding, theme }
+    latest.current = { route, markers, onMapClick, onMarkerClick, onMoveEnd, autoFit, padding, theme }
   })
 
   function drawRoute(map: MapLibreMap) {
@@ -106,7 +135,8 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
   }
 
   function fit(map: MapLibreMap) {
-    const { route, markers, padding } = latest.current
+    const { route, markers, padding, autoFit } = latest.current
+    if (!autoFit) return
     const points: LngLat[] = route && route.length > 1 ? route : markers.map((m) => m.lngLat)
     if (points.length === 0) return
     const duration = prefersReducedMotion() ? 0 : 700
@@ -161,6 +191,11 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right")
       map.on("error", (e) => console.error("MapLibre:", e.error ?? e))
       map.on("click", (e) => latest.current.onMapClick?.([e.lngLat.lng, e.lngLat.lat]))
+      map.on("moveend", (e) => {
+        if (!(e as { originalEvent?: unknown }).originalEvent || !map) return
+        const c = map.getCenter()
+        latest.current.onMoveEnd?.([c.lng, c.lat])
+      })
       map.on("style.load", () => map && drawRoute(map))
       map.on("load", () => {
         if (!map) return
@@ -203,6 +238,15 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
     if (route && route.length > 1) fit(map)
   }, [route, mapReady])
 
+  // Foco: centra el mapa en un punto concreto (p. ej. la gasolinera elegida en la lista).
+  const focusKey = focus ? `${focus[0]},${focus[1]}` : null
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !focus) return
+    map.easeTo({ center: focus, zoom: Math.max(map.getZoom(), 14), duration: prefersReducedMotion() ? 0 : 500 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey, mapReady])
+
   // Marcadores.
   useEffect(() => {
     const map = mapRef.current
@@ -210,9 +254,16 @@ export function MapView({ markers = [], route = null, onMapClick, className, pad
     if (!map || !maplibre) return
     markerObjs.current.forEach((m) => m.remove())
     markerObjs.current = markers.map((marker) =>
-      new maplibre.Marker({ element: markerElement(marker) }).setLngLat(marker.lngLat).addTo(map),
+      new maplibre.Marker({ element: markerElement(marker, (id) => latest.current.onMarkerClick?.(id)) })
+        .setLngLat(marker.lngLat)
+        .addTo(map),
     )
-    if (!(route && route.length > 1)) fit(map)
+    // Solo se reencuadra si cambian los puntos, no al resaltar o seleccionar un marcador.
+    const fitKey = markers.map((m) => `${m.id}:${m.lngLat[0]},${m.lngLat[1]}`).join("|")
+    if (!(route && route.length > 1) && fitKey !== lastFitKey.current) {
+      lastFitKey.current = fitKey
+      fit(map)
+    }
   }, [markers, route, mapReady])
 
   return (

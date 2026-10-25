@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm"
 import {
   boolean,
   index,
+  date,
+  doublePrecision,
   integer,
   jsonb,
   smallint,
@@ -232,3 +234,86 @@ export const tripPassengers = pgTable(
 export type Trip = typeof trips.$inferSelect
 export type TripPassengerRow = typeof tripPassengers.$inferSelect
 export type CarModel = typeof carModels.$inferSelect
+
+const priceColumns = {
+  priceGasolina95: numeric("price_gasolina95", { precision: 5, scale: 3, mode: "number" }),
+  priceGasolina98: numeric("price_gasolina98", { precision: 5, scale: 3, mode: "number" }),
+  priceDiesel: numeric("price_diesel", { precision: 5, scale: 3, mode: "number" }),
+  priceDieselPremium: numeric("price_diesel_premium", { precision: 5, scale: 3, mode: "number" }),
+  priceGlp: numeric("price_glp", { precision: 5, scale: 3, mode: "number" }),
+}
+
+/**
+ * Gasolineras de España, sincronizadas cada hora desde MITECO.
+ * Lectura pública; solo escribe la sincronización (conexión directa del servidor).
+ */
+export const stations = pgTable(
+  "stations",
+  {
+    /** IDEESS de MITECO. */
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    /** Marca normalizada en mayúsculas; vacía si no hay rótulo comercial. */
+    brand: text("brand").notNull().default(""),
+    address: text("address").notNull().default(""),
+    locality: text("locality").notNull().default(""),
+    municipality: text("municipality").notNull().default(""),
+    province: text("province").notNull().default(""),
+    postalCode: text("postal_code").notNull().default(""),
+    lat: doublePrecision("lat").notNull(),
+    lng: doublePrecision("lng").notNull(),
+    schedule: text("schedule").notNull().default(""),
+    publicSale: boolean("public_sale").notNull().default(true),
+    ...priceColumns,
+    /** Última sincronización en la que apareció; las que dejan de aparecer se ocultan. */
+    seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("stations_lat_lng_idx").on(t.lat, t.lng),
+    index("stations_brand_idx").on(t.brand),
+    pgPolicy("stations_public_read", { for: "select", to: [anonRole, authenticatedRole], using: sql`true` }),
+  ],
+).enableRLS()
+
+/** Un precio por estación y día (el de la última sincronización del día, hora de Madrid). */
+export const stationPriceHistory = pgTable(
+  "station_price_history",
+  {
+    stationId: text("station_id")
+      .notNull()
+      .references(() => stations.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    ...priceColumns,
+  },
+  (t) => [
+    primaryKey({ columns: [t.stationId, t.day] }),
+    index("station_price_history_day_idx").on(t.day),
+    pgPolicy("station_price_history_public_read", { for: "select", to: [anonRole, authenticatedRole], using: sql`true` }),
+  ],
+).enableRLS()
+
+export const favoriteStations = pgTable(
+  "favorite_stations",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    stationId: text("station_id")
+      .notNull()
+      .references(() => stations.id, { onDelete: "cascade" }),
+    /** Combustible que se mostrará y vigilará en esta favorita. */
+    fuelType: fuelTypeEnum("fuel_type").notNull().default("gasolina95"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.stationId] }),
+    pgPolicy("favorite_stations_all_own", {
+      for: "all",
+      to: authenticatedRole,
+      using: sql`${authUid} = ${t.userId}`,
+      withCheck: sql`${authUid} = ${t.userId}`,
+    }),
+  ],
+).enableRLS()
+
+export type Station = typeof stations.$inferSelect

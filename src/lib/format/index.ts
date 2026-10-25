@@ -18,3 +18,10 @@ export function parseDecimal(text: string): number {
   if (clean === "" || !/^-?\d*\.?\d*$/.test(clean)) return NaN
   return Number(clean)
 }
+
+/** Precio por litro con tres decimales, como en los surtidores: 1,699. */
+export const formatPrice = (n: number) => n.toFixed(3).replace(".", ",")
+
+export function formatDistance(km: number) {
+  return km < 1 ? `${Math.round(km * 10) * 100} m` : `${km.toFixed(1).replace(".", ",")} km`
+}

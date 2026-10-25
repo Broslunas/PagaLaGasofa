@@ -29,6 +29,13 @@
       "when": 1792923667676,
       "tag": "0003_trips_and_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792925869122,
+      "tag": "0004_stations",
+      "breakpoints": true
     }
   ]
 }

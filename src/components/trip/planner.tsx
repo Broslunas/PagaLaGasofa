@@ -7,7 +7,9 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { MapView, type MapMarker } from "@/components/map/map-view"
 import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { formatPrice } from "@/lib/format"
 import { fetchRoute, reverseGeocode, toLngLat } from "@/lib/routing/client"
+import { isStationFuel } from "@/lib/stations/types"
 import type { LngLat } from "@/lib/routing/types"
 import { cn } from "@/lib/utils"
 
@@ -15,7 +17,7 @@ import { BottomSheet, type SnapPoint } from "./bottom-sheet"
 import { StepPassengers } from "./step-passengers"
 import { StepRoute } from "./step-route"
 import { StepSummary } from "./step-summary"
-import { StepVehicle } from "./step-vehicle"
+import { StepVehicle, type RouteStationsState } from "./step-vehicle"
 import { computeOutcome, initialState, reducer, stepIssues, stopPlaces, STEPS, type Step } from "./state"
 
 export function TripPlanner() {
@@ -27,6 +29,7 @@ export function TripPlanner() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const [routeStations, setRouteStations] = useState<RouteStationsState>({ status: "idle", data: null })
 
   const places = stopPlaces(state)
   const placesKey = places.map((p) => `${p.lat},${p.lng}`).join("|")
@@ -49,6 +52,36 @@ export function TripPlanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placesKey])
 
+  // Gasolineras a menos de 3 km de la ruta, para el combustible elegido.
+  const routeKey = state.route ? `${state.route.distanceKm}:${state.route.geometry.length}` : null
+  useEffect(() => {
+    const geometry = state.route?.geometry
+    // Sin ruta o con un eléctrico no hay nada que pedir; la interfaz ya oculta los datos antiguos.
+    if (!geometry || !isStationFuel(state.fuelType)) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setRouteStations((s) => ({ ...s, status: "loading" }))
+      try {
+        const res = await fetch("/api/stations/along-route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ geometry, fuel: state.fuelType, radiusKm: 3, limit: 15 }),
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error()
+        setRouteStations({ status: "ready", data: await res.json() })
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") setRouteStations({ status: "error", data: null })
+      }
+    }, 400)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+    // La ruta se identifica por `routeKey`; no hace falta reaccionar al objeto completo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey, state.fuelType])
+
   // Clic en el mapa: completa el primer hueco (origen, destino, parada vacía).
   const onMapClick = useCallback(
     async ([lng, lat]: LngLat) => {
@@ -69,8 +102,16 @@ export function TripPlanner() {
     if (state.origin) out.push({ id: "o", kind: "origin", label: "A", lngLat: toLngLat(state.origin) })
     state.waypoints.forEach((w, i) => w && out.push({ id: `w${i}`, kind: "stop", label: String(i + 1), lngLat: toLngLat(w) }))
     if (state.destination) out.push({ id: "d", kind: "destination", label: "B", lngLat: toLngLat(state.destination) })
+    // En el paso de costes se ven en el mapa las gasolineras de la ruta, con la más barata resaltada.
+    if (state.step === "vehicle" && state.route && routeStations.status === "ready" && routeStations.data && isStationFuel(state.fuelType)) {
+      const fuel = state.fuelType
+      const min = routeStations.data.stats.min
+      routeStations.data.stations.forEach((s) =>
+        out.push({ id: `st${s.id}`, kind: "station", lngLat: [s.lng, s.lat], label: formatPrice(s.prices[fuel] as number), best: s.prices[fuel] === min }),
+      )
+    }
     return out
-  }, [state.origin, state.destination, state.waypoints])
+  }, [state.origin, state.destination, state.waypoints, state.step, state.fuelType, state.route, routeStations])
 
   const padding = useMemo(
     () => (isDesktop ? { top: 60, right: 60, bottom: 60, left: 480 } : { top: 70, right: 40, bottom: sheetHeight + 40, left: 40 }),
@@ -135,7 +176,7 @@ export function TripPlanner() {
   const body = (
     <div ref={bodyRef} className="pt-2">
       {state.step === "route" && <StepRoute state={state} dispatch={dispatch} />}
-      {state.step === "vehicle" && <StepVehicle state={state} dispatch={dispatch} />}
+      {state.step === "vehicle" && <StepVehicle state={state} dispatch={dispatch} routeStations={routeStations} />}
       {state.step === "passengers" && <StepPassengers state={state} dispatch={dispatch} result={result} />}
       {state.step === "summary" && outcome?.ok && (
         <StepSummary state={state} dispatch={dispatch} draft={outcome.draft} result={outcome.result} />

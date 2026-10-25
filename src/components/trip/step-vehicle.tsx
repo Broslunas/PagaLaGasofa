@@ -11,10 +11,25 @@ import { cn } from "@/lib/utils"
 
 import { CarSearch } from "./car-search"
 import { DecimalInput, Field, TextInput } from "./fields"
+import { formatDistance, formatPrice } from "@/lib/format"
+import type { RouteStations } from "@/lib/stations/queries"
 import { unitLabel, type Action, type PlannerState } from "./state"
 import { useGarage } from "./use-garage"
 
-export function StepVehicle({ state, dispatch }: { state: PlannerState; dispatch: Dispatch<Action> }) {
+export interface RouteStationsState {
+  status: "idle" | "loading" | "ready" | "error"
+  data: RouteStations | null
+}
+
+export function StepVehicle({
+  state,
+  dispatch,
+  routeStations,
+}: {
+  state: PlannerState
+  dispatch: Dispatch<Action>
+  routeStations: RouteStationsState
+}) {
   const garage = useGarage()
   const unit = unitLabel(state.fuelType)
   const consumptionSuffix = `${unit}/100 km`
@@ -121,6 +136,7 @@ export function StepVehicle({ state, dispatch }: { state: PlannerState; dispatch
               onChange={(value) => dispatch({ type: "price", value })} />
           )}
         </Field>
+        <RouteStationsPanel state={state} routeStations={routeStations} onUse={(p) => dispatch({ type: "price", value: formatPrice(p) })} />
         <Field label="Peajes (total)" hint="Suma de todos los peajes del viaje, si los hay.">
           {({ id, describedBy }) => (
             <DecimalInput id={id} describedBy={describedBy} value={state.tolls} suffix="€" placeholder="0"
@@ -211,5 +227,52 @@ function SaveVehicle({ state, onSaved }: { state: PlannerState; onSaved: () => v
         {status === "error" && <span role="alert" className="text-xs text-destructive">No se pudo guardar.</span>}
       </div>
     </div>
+  )
+}
+
+function RouteStationsPanel({ state, routeStations, onUse }: { state: PlannerState; routeStations: RouteStationsState; onUse: (price: number) => void }) {
+  if (state.fuelType === "electrico" || !state.route) return null
+  const { status, data } = routeStations
+  const current = parseDecimal(state.price)
+
+  return (
+    <section aria-labelledby="route-stations-h" className="space-y-2 rounded-xl border bg-card p-3">
+      <h4 id="route-stations-h" className="text-sm font-medium">Gasolineras en tu ruta</h4>
+      {status === "loading" && <p className="text-xs text-muted-foreground">Buscando gasolineras a menos de 3 km de la ruta…</p>}
+      {status === "error" && <p className="text-xs text-destructive">No se pudieron cargar los precios de la ruta.</p>}
+      {status === "ready" && data && data.stats.count === 0 && (
+        <p className="text-xs text-muted-foreground">No hay gasolineras con este combustible cerca de la ruta.</p>
+      )}
+      {status === "ready" && data && data.stats.count > 0 && (
+        <>
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>
+              {data.stats.count} gasolineras · media <strong className="text-foreground">{formatPrice(data.stats.avg!)}</strong> €/l
+            </span>
+            <Button type="button" variant="outline" size="sm" onClick={() => onUse(data.stats.avg!)}>
+              Usar la media
+            </Button>
+          </div>
+          <ul className="divide-y">
+            {data.stations.slice(0, 4).map((s) => {
+              const price = s.prices[state.fuelType as keyof typeof s.prices] as number
+              return (
+                <li key={s.id} className="flex items-center justify-between gap-2 py-2">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{s.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {s.locality} · a {formatDistance(s.distanceKm ?? 0)} de la ruta
+                    </span>
+                  </span>
+                  <Button type="button" size="sm" variant={Math.abs(current - price) < 0.0005 ? "default" : "outline"} onClick={() => onUse(price)}>
+                    {formatPrice(price)} €
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
+    </section>
   )
 }
